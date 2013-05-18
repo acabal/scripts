@@ -1,0 +1,24 @@
+#!/bin/bash
+
+usage(){
+	echo -n
+	fmt <<EOF
+DESCRIPTION
+	Lock the screen, then simulate a mouse movement to immediately wake the screen up.
+	
+USAGE
+	lock-after-login
+EOF
+	exit
+}
+if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
+#End boilerplate
+
+require "xdotool" "Try: apt-get install xdotool"
+
+#lock the screen
+gnome-screensaver-command --lock
+
+#simulate a mouse movement
+#sleep 1
+xdotool click 1

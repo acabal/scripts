@@ -1,0 +1,7 @@
+#compdef update-dns-record
+
+_arguments  \
+"(-h --host)"{-h=-,--host=-}"[The host to compare our IP address to.]::" \
+"(-k --api-key)"{-k=-,--api-key=-}"[The Linode API key.]::" \
+"(-d --domain-id)"{-d=-,--domain-id=-}"[The Linode domain ID.]::" \
+"(-r --resource-id)"{-r=-,--resource-id=-}"[The Linode resource ID.]::"

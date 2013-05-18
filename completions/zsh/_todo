@@ -1,0 +1,9 @@
+#compdef todo
+
+_arguments  \
+"(-a --add -e --edit -x --done -u --undo -p --purge -d --delete)"{-a,--add}"[Add a task.]" \
+"(-a --add -e --edit -x --done -u --undo -p --purge -d --delete)"{-e,--edit}"[Change the description of a task.]" \
+"(-a --add -e --edit -x --done -u --undo -p --purge -d --delete)"{-d,--done}"[Mark a task as done.]" \
+"(-a --add -e --edit -x --done -u --undo -p --purge -d --delete)"{-u,--undo}"[Mark a task as not done.]" \
+"(-a --add -e --edit -x --done -u --undo -p --purge -d --delete)"{-p,--purge}"[Remove all tasks marked as done.]" \
+"(-a --add -e --edit -x --done -u --undo -p --purge -d --delete)"{-x,--delete}"[Remove a task.]"

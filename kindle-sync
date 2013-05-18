@@ -1,0 +1,154 @@
+#!/bin/bash
+
+usage(){
+	echo -n
+	fmt <<EOF
+DESCRIPTION
+	Compile and sync ebooks in ~/documents/ebooks/ to an attached Kindle device, then eject it.  Epub files are compiled to mobi files and cover thumbnails are transferred automatically.
+	
+USAGE
+	kindle-sync [-d,--dry-run] [-c,--compile-only]
+	
+		-d,--dry-run		Simulate the sync and don't 
+					eject the device aftewards.
+		
+		-c,--compile-only	Compile only, don't sync to 
+					the device.  Can't be used 
+					with the -d option.
+EOF
+	exit
+}
+die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
+#End boilerplate
+
+ebooksRoot="$HOME/documents/ebooks/" #Trailing slash required
+kindleRoot="/media/Kindle" #No trailing slash please!
+
+require "rsync" "Try: apt-get install rsync"
+require "ebook-convert" "Try: apt-get install calibre"
+require "ebook-extract"
+
+convertFile(){
+	md5=$(md5sum "$1" | awk '{ print $1 }')
+	tempPath="/tmp" #No trailing slash please!
+	filename=$(basename "$1" ".epub")
+	fileLocation=$(dirname "$1")
+	mobiPath="$fileLocation"/"$filename.compiled.mobi"
+	tempMobiPath="/tmp/mobi" #No trailing slash please!
+	
+	echo "Compiling $mobiPath ..."
+
+	#First convert epub to mobi
+	ebook-convert "$1" "$mobiPath" &> /dev/null
+	
+	#Store the md5 sum of the epub
+	echo "$md5" > "$fileLocation/last-epub-md5"
+
+	#Extract the mobi file to get the asin
+	rm -rf "$tempMobiPath" &> /dev/null
+	ebook-extract -d="$tempMobiPath" "$mobiPath" 
+
+	#Get the ASIN
+	asin=$(grep -o -E '<meta name="ASIN" content="(.*)"' "$tempMobiPath"/mobi7/*.opf | sed -E 's/.*content="(.*)"/\1/')
+
+	#Generate the thumbnail
+	rm "$fileLocation"/thumbnail_* &> /dev/null
+	
+	#Get the name of the cover image
+	coverPath=$(grep -o -E '<item id="cover_img" media-type=".*?" href="(.*)"' "$tempMobiPath"/mobi7/*.opf | sed -E 's/.*href\="(.*)"/\1/')
+
+	#Resize the cover
+	convert "$tempMobiPath/mobi7/$coverPath" -resize 216x330 "$fileLocation/thumbnail_"$asin"_EBOK_portrait.jpg" &> /dev/null
+}
+
+dryRun=false
+compileOnly=false
+
+if [ $# -eq 1 ]; then
+	if [ "$1" = "--dry-run" -o "$1" = "-d" ]; then
+		dryRun=true
+	fi
+	if [ "$1" = "--compile-only" -o "$1" = "-c" ]; then
+		compileOnly=true
+	fi
+fi
+
+if [ $compileOnly != true ]; then
+	if [ ! -d "$kindleRoot" ]; then
+		die "Kindle not mounted."
+	fi
+fi
+
+find "$ebooksRoot" -name "*.epub" | while read filePath;
+do
+	#Ignore epub files that end in .original.epub
+	if [[ "$filePath" == *.original.epub ]]; then
+		continue
+	fi
+	
+	#Ignore epub files that end in .wip.epub
+	if [[ "$filePath" == *.wip.epub ]]; then
+		continue
+	fi
+	
+	#Do we have a cached copy of the mobi file?
+	fileName=$(basename "$filePath" ".epub")
+	fileLocation=$(dirname "$filePath")
+	
+	if ls "$fileLocation/last-epub-md5" &> /dev/null ; then
+		#Mobi exists
+		
+		currentMd5=$(md5sum "$filePath" | awk '{ print $1 }')
+		cachedMd5=$(cat "$fileLocation/last-epub-md5")
+		
+		#Have we made changes?
+		if [ "$currentMd5" != "$cachedMd5" ]; then
+			convertFile "$filePath"
+		fi
+	else
+		#Mobi does not exist, create it for the first time
+		convertFile "$filePath"
+	fi
+done
+
+#Rsync thumbnails to the device
+rm -rf "/tmp/images-sync/" &> /dev/null
+mkdir -p "/tmp/images-sync/" &> /dev/null
+
+#Don't sync for a dry run
+if [ $compileOnly != true -a $dryRun != true ]; then
+	find "$ebooksRoot" -name "*.jpg" | while read filePath;
+	do
+		cp "$filePath" "/tmp/images-sync/"
+	done
+	
+	rsync -rlcvz --itemize-changes --include="*.jpg" --delete  "/tmp/images-sync/" "$kindleRoot/system/thumbnails" &> /dev/null
+fi
+
+#Rsync books to the device
+#Ignore .sdr folders and .original.mobi files
+rm -rf "/tmp/mobi-sync" &> /dev/null
+
+if [ $compileOnly != true ]; then
+	if [ ! -d "$kindleRoot/documents/ebooks" ]; then
+		mkdir -p "$kindleRoot/documents/ebooks"
+	fi
+fi
+
+if [ $dryRun = true ]; then
+	echo Starting rsync dry run ...
+	rsync -rlcvz --dry-run --itemize-changes --filter="P *.sdr" --include="*/" --exclude="*.original.mobi" --include="*.mobi" --exclude="*" --delete  "$ebooksRoot" "$kindleRoot/documents/ebooks"
+elif [ $compileOnly != true ]; then
+	#Empty my clippings
+	echo "" > "$kindleRoot/documents/My Clippings.txt"
+	rsync -rlcvz --itemize-changes --filter="P *.sdr" --include="*/" --exclude="*.original.mobi" --include="*.mobi" --exclude="*" --delete "$ebooksRoot" "$kindleRoot/documents/ebooks"
+fi
+
+if [ $dryRun != true -a $compileOnly != true ] ; then
+	echo "Ejecting Kindle ..."
+	sudo eject "$kindleRoot"
+	echo "Done."
+fi
+

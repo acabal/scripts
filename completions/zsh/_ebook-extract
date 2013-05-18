@@ -1,0 +1,5 @@
+#compdef ebook-extract
+
+_arguments  \
+	"(-d --directory)"{-d=,--directory=}"[New directory to extract the ebook into.]::" \
+	"*:files:_files"

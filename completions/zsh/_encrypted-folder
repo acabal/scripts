@@ -1,0 +1,6 @@
+#compdef encrypted-folder
+
+typeset -A opt_args
+_arguments  \
+"(--unmount -u --mount -m)"{-m,--mount}"[Mount an encrypted encfs folder or create a new encfs folder.]:Directory:_directories" \
+"(--unmount -u --mount -m)"{-u,--unmount}"[Unmount an encfs volume, or all volumes in home.]:Directory:_directories" \

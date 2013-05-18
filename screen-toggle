@@ -1,0 +1,45 @@
+#!/bin/bash
+
+usage(){
+	echo -n
+	fmt <<EOF
+DESCRIPTION
+	Toggle the laptop display on or off.
+	
+USAGE
+	screen-toggle
+EOF
+	exit
+}
+die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
+#End boilerplate
+
+require "xdotool" "Try: apt-get install xdotool"
+
+screenOffLockFile=/tmp/screen-toggle-lock
+
+if [ -f $screenOffLockFile ];
+then
+	rm $screenOffLockFile
+	notify-send "Screen on" -i /usr/share/icons/gnome/48x48/devices/computer.png
+	xset dpms force on
+else
+	touch $screenOffLockFile
+	sleep .5
+	while true 
+	do
+		if [ -f $screenOffLockFile ];
+		then
+			xset dpms force off
+		else
+			break
+		fi
+		sleep 2
+	done
+	xset dpms force on
+	
+	#Simulate mouse movement to ensure the screen stays on
+	xdotool mousemove 0 0 mousemove restore
+fi

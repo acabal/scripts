@@ -1,0 +1,64 @@
+#!/bin/bash
+
+usage(){
+	echo -n
+	fmt <<EOF
+DESCRIPTION
+	Extract an epub or a mobi ebook into FILENAME.extracted/, or into the specified new target directory.
+	
+USAGE
+	ebook-extract [-d,--destination=DIRECTORY] FILENAME
+EOF
+	exit
+}
+die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
+#End boilerplate
+
+outputDir="."
+mobiExtractorPath="/usr/local/bin/mobi_unpack.py"
+filename=""
+
+require "$mobiExtractorPath" "See: http://wiki.mobileread.com/wiki/KindleUnpack"
+
+if [ $# -eq 0 ]; then
+	usage
+fi
+
+for i in "$@"
+do
+case $i in
+	-d=*|--destination=*)
+		outputDir=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+	;;
+	*)
+		filename="$i"
+	;;
+esac
+done
+
+if [ "$outputDir" = "." ]; then
+	outputDir="$outputDir/$1.extracted/"
+fi
+
+if [ -d "$outputDir" ]; then
+	die "$outputDir already exists."
+fi
+
+if [ "$filename" = "" ]; then
+	usage
+fi
+
+#Handle .mobi files
+if file "$filename" | grep -i ": Mobipocket E-book" &> /dev/null; then
+	mkdir "$outputDir"
+	"$mobiExtractorPath" "$filename" "$outputDir" > /dev/null
+
+#Handle .epub files
+elif file "$filename" | grep -i ": EPUB ebook data" &> /dev/null; then
+	mkdir "$outputDir"
+	unzip "$filename" -d "$outputDir" > /dev/null
+else
+	die "Unrecognized ebook file."
+fi

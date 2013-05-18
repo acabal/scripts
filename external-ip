@@ -1,0 +1,17 @@
+#!/bin/bash
+
+usage(){
+	echo -n
+	fmt <<EOF
+DESCRIPTION
+	Display the IP address of this host as seen from the public internet.
+	
+USAGE
+	external-ip
+EOF
+	exit
+}
+if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
+#End boilerplate
+
+curl -s ifconfig.me

@@ -1,0 +1,27 @@
+#compdef socks-tunnel
+
+local curcontext="$curcontext" state line
+typeset -A opt_args
+_arguments \
+'1: :->action' \
+'2: :->extra' \
+'3: :->extra'
+
+case $state in
+	action)
+		_arguments  \
+		"(--stop -x --status -u --start -s)"{-s,--start}"[Start the SOCKS tunnel.]" \
+		"(--stop -x --status -u --start -s)"{-x,--stop}"[Stop the currently running SOCKS tunnel.]" \
+		"(--stop -x --status -u --start -s)"{-u,--status}"[Show the status of the SOCKS tunnel.]" \
+	;;
+	extra)
+		case $words[2] in
+			(-s|--start)
+			    _arguments  \
+				"(-b --browser)"{-b,--browser}"[Tunnel through SSH and configure Firefox's proxy settings.]" \
+				"(-h --host)"{-h=-,--host=-}"[A host to connect to, in user@hostname format.]::" \
+			;;
+		esac
+	;;
+esac 
+

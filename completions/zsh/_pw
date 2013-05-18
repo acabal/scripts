@@ -1,0 +1,15 @@
+#compdef pw
+
+_pwDomains(){
+	location=$(pw | head -n 1)
+	validFiles=($(find "$location" | grep ".gpg$" | sort | sed -E 's/.*\/\.passwords\/(.*).gpg$/\1/'))
+	compadd "$@" -k validFiles
+}
+
+typeset -A opt_args
+_arguments  \
+"(-l --list -g --generate -s --show -e --edit)"{-l,--list}"[List stored domains.]" \
+"(-l --list -g --generate -s --show -e --edit)"{-g,--generate}"[Print a new strong password to stdout and copy it to the clipboard.]" \
+"(-l --list -g --generate -s --show -e --edit)"{-s,--show}"[Show stored password for a domain.]:Domain:_pwDomains" \
+"(-l --list -g --generate -s --show -e --edit)"{-e,--edit}"[Edit stored password for a domain.  Requires sudo privileges.]:Domain:_pwDomains" \
+

@@ -1,0 +1,6 @@
+#compdef geolocate-ip
+
+_arguments  \
+"(-f --file)"{-f=,--file=}"[Read IP addresses from a file.]:File:_files" \
+"(-k --api-key)"{-k=,--api-key=}"[Specify an ipinfodb.com API key to use.]::" \
+"(-c -country-only)"{-c,--country-only}"[Get country-level information instead of city-level.]"
