@@ -2,12 +2,18 @@
 
 passwordFilePath="$HOME/.passwords" #No trailing slash
 clipboardTime=30
+configFile="$HOME/.config/pw/private-key"
+recipient=""
 
 usage(){
 	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Create, edit, and view gpg-encrypted passwords stored in the $passwordFilePath/ folder.
+	
+	By default, pw encrypts passwords symmetrically using a passphrase.  To encrypt with a GPG key 
+	instead, create the file ~/.config/pw/private-key containing the email address of 
+	the private key to use.  The private key must be on your keychain.
 	
 USAGE
 	pw [-l,--list]
@@ -61,6 +67,10 @@ generatePassword(){
 	echo -n "$password"
 }
 
+if [ -f "$configFile" ]; then
+	recipient=$(cat "$configFile")
+fi
+
 if [ $# -eq 0 ]; then	
 	tree "$passwordFilePath/" | sed "s/\.gpg$//" | sed -n -e :a -e '1,2!{P;N;D;};N;ba'
 fi
@@ -91,15 +101,19 @@ if [ $# -eq 2 ]; then
 		read -p "Enter your login for this domain:" login
 
 		password=$(generatePassword)
-	
-		echo -e "login: $login\npass: $password" | gpg --batch --yes -c -o "$passwordFilePath/$2.gpg"
+		
+		if [ "$recipient" = "" ]; then
+			echo -e "login: $login\npass: $password" | gpg --symmetric --batch --yes --output "$passwordFilePath/$2.gpg"
+		else
+			echo -e "login: $login\npass: $password" | gpg --encrypt --batch --yes --recipient "$recipient" --output "$passwordFilePath/$2.gpg"
+		fi
 	
 		echo $password
 		echo -n "$password" | xclip -selection clipboard
 		sleep "$clipboardTime" && echo -n "" | xclip -selection clipboard &
 	elif [ "$1" = "-s" -o "$1" = "--show" ]; then
 		if [ -f "$passwordFilePath/$2.gpg" ]; then
-			text=$(gpg -d "$passwordFilePath/$2.gpg" 2> /dev/null)
+			text=$(gpg --decrypt --no-tty "$passwordFilePath/$2.gpg" 2> /dev/null)
 			
 			if [ $? -ne 0 ]; then
 				die "Invalid password."
@@ -135,7 +149,7 @@ if [ $# -eq 2 ]; then
 			filename=$(basename "$2")
 			filePath="$tempMountPoint/$filename"
 			
-			gpg -o "$filePath" "$passwordFilePath/$2.gpg" 2> /dev/null
+			gpg --decrypt --no-tty --output "$filePath" "$passwordFilePath/$2.gpg" 2> /dev/null
 			
 			if [ $? -ne 0 ]; then
 				sudo umount "$tempMountPoint"
@@ -148,7 +162,11 @@ if [ $# -eq 2 ]; then
 				$EDITOR "$filePath"
 			fi
 			
-			gpg --batch --yes -c -o "$passwordFilePath/$2.gpg" "$filePath"
+			if [ "$recipient" = "" ]; then
+				gpg --symmetric --batch --yes --output "$passwordFilePath/$2.gpg" "$filePath"
+			else
+				gpg --encrypt --batch --yes --recipient "$recipient" --output "$passwordFilePath/$2.gpg" "$filePath"
+			fi
 			
 			rm "$filePath"
 			
