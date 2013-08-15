@@ -103,9 +103,9 @@ if [ $# -eq 2 ]; then
 		password=$(generatePassword)
 		
 		if [ "$recipient" = "" ]; then
-			echo -e "login: $login\npass: $password" | gpg --symmetric --batch --yes --output "$passwordFilePath/$2.gpg"
+			echo -e "login: $login\npass: $password" | gpg --symmetric --armor --batch --yes --output "$passwordFilePath/$2.gpg"
 		else
-			echo -e "login: $login\npass: $password" | gpg --encrypt --batch --yes --recipient "$recipient" --output "$passwordFilePath/$2.gpg"
+			echo -e "login: $login\npass: $password" | gpg --encrypt --armor --batch --yes --recipient "$recipient" --output "$passwordFilePath/$2.gpg"
 		fi
 	
 		echo $password
@@ -163,9 +163,9 @@ if [ $# -eq 2 ]; then
 			fi
 			
 			if [ "$recipient" = "" ]; then
-				gpg --symmetric --batch --yes --output "$passwordFilePath/$2.gpg" "$filePath"
+				gpg --symmetric --armor --batch --yes --output "$passwordFilePath/$2.gpg" "$filePath"
 			else
-				gpg --encrypt --batch --yes --recipient "$recipient" --output "$passwordFilePath/$2.gpg" "$filePath"
+				gpg --encrypt --armor --batch --yes --recipient "$recipient" --output "$passwordFilePath/$2.gpg" "$filePath"
 			fi
 			
 			rm "$filePath"
