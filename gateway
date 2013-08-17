@@ -8,6 +8,10 @@ DESCRIPTION
 	
 USAGE
 	gateway
+		Print the gateway address to standard output.
+		
+	gateway -o,--open
+		Open the gateway address in the default web browser.
 EOF
 	exit
 }
@@ -21,7 +25,14 @@ while read -r line; do
 		flags=$(echo "$flagsColumn" | egrep "G")
 		if [ "$flags" != "" ]; then
 			address=$(echo "$line" | tr -s ' '| cut -d ' ' -f 2)
-			echo "http://$address"
+			
+			if [ $# -eq 0 ]; then
+				echo "http://$address"
+			elif [ "$1" = "-o" -o "$1" = "--open" ]; then
+				xdg-open "http://$address"
+			fi
+			
+			
 		fi
 	fi
 done <<< "$(route)"
