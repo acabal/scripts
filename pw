@@ -12,17 +12,20 @@ DESCRIPTION
 	Create, edit, and view gpg-encrypted passwords stored in the $passwordFilePath/ folder.
 	
 	By default, pw encrypts passwords symmetrically using a passphrase.  To encrypt with a GPG key instead, create the file ~/.config/pw/private-key containing the email address of the private key to use.  The private key must be on your keychain.
-	
+
 USAGE
 	pw [-l,--list]
 		List stored domains.
-		
+
 	pw -g,--generate [DOMAIN]
-		Generate and print a new strong password to stdout and copy it to the clipboard for $clipboardTime seconds.  If invoked with a domain name, additionally prompt for a login username, then store the username and password in the password store.
+		Generate and print a new strong password to stdout and copy it to the clipboard for $clipboardTime seconds.  If invoked with a domain name, additionally prompt for a login, then store the login and generated password in the password store.
 	
+	pw -a,--add DOMAIN
+		Prompt for a login and password for a domain, then store those credentials in the password store.
+
 	pw -s,--show DOMAIN
 		Show stored credentials for the specified domain and copy the password to the clipboard for $clipboardTime seconds.
-		
+
 	pw -e,--edit DOMAIN
 		Edit the information stored under that domain using a temporary file stored in a RAMFS mount.  Requires sudo privileges.
 EOF
@@ -106,6 +109,25 @@ if [ $# -eq 2 ]; then
 		echo $password
 		echo -n "$password" | xclip -selection clipboard
 		sleep "$clipboardTime" && echo -n "" | xclip -selection clipboard &
+	elif [ "$1" = "-a" -o "$1" = "--add" ]; then
+		if [ -f "$passwordFilePath/$2.gpg" ]; then	
+			read -p "This domain already exists.  Overwrite? (y/n)" yn
+			case $yn in
+				[Yy]* ) :;;
+				[Nn]* ) exit;;
+				* ) exit;;
+			esac
+		fi
+
+		read -p "Enter your login for this domain:" login
+
+		read -s -p "Enter your password for this domain:" password
+		
+		if [ "$recipient" = "" ]; then
+			echo -e "login: $login\npass: $password" | gpg --symmetric --armor --batch --yes --output "$passwordFilePath/$2.gpg"
+		else
+			echo -e "login: $login\npass: $password" | gpg --encrypt --armor --batch --yes --recipient "$recipient" --output "$passwordFilePath/$2.gpg"
+		fi
 	elif [ "$1" = "-s" -o "$1" = "--show" ]; then
 		if [ -f "$passwordFilePath/$2.gpg" ]; then
 			text=$(gpg --decrypt --no-tty "$passwordFilePath/$2.gpg" 2> /dev/null)
