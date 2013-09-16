@@ -11,24 +11,19 @@ usage(){
 DESCRIPTION
 	Create, edit, and view gpg-encrypted passwords stored in the $passwordFilePath/ folder.
 	
-	By default, pw encrypts passwords symmetrically using a passphrase.  To encrypt with a GPG key 
-	instead, create the file ~/.config/pw/private-key containing the email address of 
-	the private key to use.  The private key must be on your keychain.
+	By default, pw encrypts passwords symmetrically using a passphrase.  To encrypt with a GPG key instead, create the file ~/.config/pw/private-key containing the email address of the private key to use.  The private key must be on your keychain.
 	
 USAGE
 	pw [-l,--list]
 		List stored domains.
 		
-	pw -g,--generate
-		Print a new strong password to stdout and copy it to the clipboard for $clipboardTime seconds.
-		
 	pw -g,--generate [DOMAIN]
-		Prompt for a login for this domain, then print a new strong password to stdout and store these credentials.  The password is copied to the clipboard for $clipboardTime seconds.
+		Generate and print a new strong password to stdout and copy it to the clipboard for $clipboardTime seconds.  If invoked with a domain name, additionally prompt for a login username, then store the username and password in the password store.
 	
-	pw -s,--show [DOMAIN]
+	pw -s,--show DOMAIN
 		Show stored credentials for the specified domain and copy the password to the clipboard for $clipboardTime seconds.
 		
-	pw -e,--edit [DOMAIN]
+	pw -e,--edit DOMAIN
 		Edit the information stored under that domain using a temporary file stored in a RAMFS mount.  Requires sudo privileges.
 EOF
 	exit
