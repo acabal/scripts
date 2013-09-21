@@ -88,7 +88,7 @@ fi
 if [ $# -eq 2 ]; then
 	if [ "$1" = "-g" -o "$1" = "--generate" ]; then
 		if [ -f "$passwordFilePath/$2.gpg" ]; then	
-			read -p "This domain already exists.  Overwrite? (y/n)" yn
+			read -p "This domain already exists.  Overwrite? (y/n) " yn
 			case $yn in
 				[Yy]* ) :;;
 				[Nn]* ) exit;;
@@ -96,7 +96,7 @@ if [ $# -eq 2 ]; then
 			esac
 		fi
 
-		read -p "Enter your login for this domain:" login
+		read -p "Enter your login for this domain: " login
 
 		password=$(generatePassword)
 		
@@ -111,7 +111,7 @@ if [ $# -eq 2 ]; then
 		sleep "$clipboardTime" && echo -n "" | xclip -selection clipboard &
 	elif [ "$1" = "-a" -o "$1" = "--add" ]; then
 		if [ -f "$passwordFilePath/$2.gpg" ]; then	
-			read -p "This domain already exists.  Overwrite? (y/n)" yn
+			read -p "This domain already exists.  Overwrite? (y/n) " yn
 			case $yn in
 				[Yy]* ) :;;
 				[Nn]* ) exit;;
@@ -119,9 +119,17 @@ if [ $# -eq 2 ]; then
 			esac
 		fi
 
-		read -p "Enter your login for this domain:" login
-
-		read -s -p "Enter your password for this domain:" password
+		read -p "Enter your login for this domain: " login
+		
+		#Note: The newlines here are required without indentation for things to appear nicely.
+		read -s -p "Enter your password for this domain:
+" password
+		read -s -p "Repeat your password for this domain:
+" passwordConfirm
+		
+		if [ "$password" != "$passwordConfirm" ]; then
+			die "Passwords don't match."
+		fi
 		
 		if [ "$recipient" = "" ]; then
 			echo -e "login: $login\npass: $password" | gpg --symmetric --armor --batch --yes --output "$passwordFilePath/$2.gpg"
@@ -158,7 +166,7 @@ if [ $# -eq 2 ]; then
 			sudo mount -t ramfs -o size=20m ramfs "$tempMountPoint"
 			
 			if [ $? -ne 0 ]; then
-				die "Could not create temporary mount.  Do you have sudo privileges?"
+				die "Couldn't create temporary mount.  Do you have sudo privileges?"
 			fi
 			
 			sudo chown $(whoami) "$tempMountPoint"
