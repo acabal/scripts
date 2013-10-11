@@ -32,6 +32,9 @@ Sync ebooks in ~/documents/ebooks/ to an attached Nook device, then eject it.
 ##pw
 Create, edit, and view gpg-encrypted passwords stored in ~/.passwords/.
 
+##remove-old-kernels
+Automatically remove unused kernels from the system.
+
 ##screen-toggle
 Toggle the laptop display on or off.
 
