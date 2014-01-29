@@ -26,6 +26,9 @@ Compile and sync ebooks in ~/documents/ebooks/ to an attached Kindle device, the
 ##lock-after-login
 Lock the screen, then simulate a mouse movement to immediately wake the screen up.
 
+##ogg-cover-art
+Add cover art to an OGG file.
+
 ##nook-sync
 Sync ebooks in ~/documents/ebooks/ to an attached Nook device, then eject it.
 

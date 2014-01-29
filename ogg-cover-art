@@ -1,0 +1,126 @@
+#!/bin/bash
+
+usage(){
+	echo -n
+	fmt <<EOF
+DESCRIPTION
+	Add cover art to an OGG file.
+	Adapted from mussync-tools by biapy: https://github.com/biapy/howto.biapy.com/blob/master/various/mussync-tools
+
+USAGE
+	ogg-cover-art [COVER-FILENAME] OGG-FILENAME
+		Add cover art to OGG-FILENAME.  If COVER-FILENAME is not specified, 
+		use cover.jpg, cover.jpeg, or cover.png located in the same folder
+		as OGG-FILENAME.
+EOF
+	exit
+}
+die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
+#End boilerplate
+
+if [ $# -eq 0 ]; then
+	usage
+fi
+
+OUTPUT_FILE=""
+IMAGE_PATH=""
+
+if [ $# -eq 1 ]; then
+	OUTPUT_FILE="$1"
+	dirName=$(dirname "$1")
+	IMAGE_PATH="$dirName/cover.jpg"
+	if [ ! -f "$IMAGE_PATH" ]; then
+		IMAGE_PATH="$dirName/cover.jpeg"
+		if [ ! -f "$IMAGE_PATH" ]; then
+			IMAGE_PATH="$dirName/cover.png"
+			if [ ! -f "$IMAGE_PATH" ]; then
+				die "Couldn't find a cover image in $dirName"
+			fi
+		fi
+	fi
+fi
+
+if [ $# -eq 2 ]; then
+	OUTPUT_FILE="$2"
+	IMAGE_PATH="$1"
+fi
+
+if [ ! -f "$OUTPUT_FILE" ]; then
+	die "Couldn't find ogg file"
+fi
+
+if [ ! -f "$IMAGE_PATH" ]; then
+	die "Couldn't find cover image"
+fi
+
+IMAGE_MIME_TYPE=$(mimetype -b "$IMAGE_PATH")
+
+if [ "$IMAGE_MIME_TYPE" != "image/jpeg" ]; then
+	if [ "$IMAGE_MIME_TYPE" != "image/png" ]; then
+		die "Cover image isn't a jpg or png"
+	fi
+fi
+
+# Export existing comments to file.
+COMMENTS_PATH="$(mktemp -t "tmp.XXXXXXXXXX")"
+vorbiscomment --list --raw "${OUTPUT_FILE}" > "${COMMENTS_PATH}"
+
+# Remove existing images.
+sed -i -e '/^metadata_block_picture/d' "${COMMENTS_PATH}"
+
+# Insert cover image from file.
+
+# metadata_block_picture format.
+# See: https://xiph.org/flac/format.html#metadata_block_picture
+IMAGE_WITH_HEADER="$(mktemp -t "tmp.XXXXXXXXXX")"
+DESCRIPTION=""
+
+# Reset cache file.
+echo -n "" > "${IMAGE_WITH_HEADER}"
+
+# Picture type <32>.
+printf "0: %.8x" 3 | xxd -r -g0 \
+      >> "${IMAGE_WITH_HEADER}"
+# Mime type length <32>.
+printf "0: %.8x" $(echo -n "${IMAGE_MIME_TYPE}" | wc -c) \
+        | xxd -r -g0 \
+      >> "${IMAGE_WITH_HEADER}"
+# Mime type (n * 8)
+echo -n "${IMAGE_MIME_TYPE}" >> "${IMAGE_WITH_HEADER}"
+# Description length <32>.
+printf "0: %.8x" $(echo -n "${DESCRIPTION}" | wc -c) \
+        | xxd -r -g0 \
+      >> "${IMAGE_WITH_HEADER}"
+# Description (n * 8)
+echo -n "${DESCRIPTION}" >> "${IMAGE_WITH_HEADER}"
+# Picture with <32>.
+printf "0: %.8x" 0 | xxd -r -g0 \
+      >> "${IMAGE_WITH_HEADER}"
+# Picture height <32>.
+printf "0: %.8x" 0 | xxd -r -g0 \
+      >> "${IMAGE_WITH_HEADER}"
+# Picture color depth <32>.
+printf "0: %.8x" 0 | xxd -r -g0 \
+      >> "${IMAGE_WITH_HEADER}"
+# Picture color count <32>.
+printf "0: %.8x" 0 | xxd -r -g0 \
+      >> "${IMAGE_WITH_HEADER}"
+# Image file size <32>.
+printf "0: %.8x" $(wc -c "${IMAGE_PATH}" \
+        | cut --delimiter=' ' --fields=1) \
+        | xxd -r -g0 \
+      >> "${IMAGE_WITH_HEADER}"
+# Image file.
+cat "${IMAGE_PATH}" >> "${IMAGE_WITH_HEADER}"
+
+echo "metadata_block_picture=$(base64 --wrap=0 < "${IMAGE_WITH_HEADER}")" >> "${COMMENTS_PATH}"
+
+# Update vorbis file comments.
+vorbiscomment --write --raw --commentfile "${COMMENTS_PATH}" "${OUTPUT_FILE}"
+
+# Delete cache file.
+rm "${IMAGE_WITH_HEADER}"
+# Delete comments file.
+rm "${COMMENTS_PATH}"
