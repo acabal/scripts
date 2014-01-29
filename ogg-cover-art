@@ -60,7 +60,13 @@ fi
 imageMimeType=$(mimetype -b "$imagePath")
 
 if [ "$imageMimeType" != "image/jpeg" -a "$imageMimeType" != "image/png" ]; then
-	die "Cover image isn't a jpg or png."
+	die "Cover image isn't a jpg or png image."
+fi
+
+oggMimeType=$(mimetype -b "$outputFile")
+
+if [ "$oggMimeType" != "audio/x-vorbis+ogg" ]; then
+	die "Input file isn't an ogg file."
 fi
 
 #Export existing comments to file
