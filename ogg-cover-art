@@ -20,107 +20,104 @@ require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; 
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
+require "vorbiscomment" "Try: apt-get install vorbis-tools"
+
 if [ $# -eq 0 ]; then
 	usage
 fi
 
-OUTPUT_FILE=""
-IMAGE_PATH=""
+outputFile=""
+imagePath=""
 
 if [ $# -eq 1 ]; then
-	OUTPUT_FILE="$1"
+	outputFile="$1"
 	dirName=$(dirname "$1")
-	IMAGE_PATH="$dirName/cover.jpg"
-	if [ ! -f "$IMAGE_PATH" ]; then
-		IMAGE_PATH="$dirName/cover.jpeg"
-		if [ ! -f "$IMAGE_PATH" ]; then
-			IMAGE_PATH="$dirName/cover.png"
-			if [ ! -f "$IMAGE_PATH" ]; then
-				die "Couldn't find a cover image in $dirName"
+	imagePath="$dirName/cover.jpg"
+	if [ ! -f "$imagePath" ]; then
+		imagePath="$dirName/cover.jpeg"
+		if [ ! -f "$imagePath" ]; then
+			imagePath="$dirName/cover.png"
+			if [ ! -f "$imagePath" ]; then
+				die "Couldn't find a cover image in $dirName."
 			fi
 		fi
 	fi
 fi
 
 if [ $# -eq 2 ]; then
-	OUTPUT_FILE="$2"
-	IMAGE_PATH="$1"
+	outputFile="$2"
+	imagePath="$1"
 fi
 
-if [ ! -f "$OUTPUT_FILE" ]; then
-	die "Couldn't find ogg file"
+if [ ! -f "$outputFile" ]; then
+	die "Couldn't find ogg file."
 fi
 
-if [ ! -f "$IMAGE_PATH" ]; then
-	die "Couldn't find cover image"
+if [ ! -f "$imagePath" ]; then
+	die "Couldn't find cover image."
 fi
 
-IMAGE_MIME_TYPE=$(mimetype -b "$IMAGE_PATH")
+imageMimeType=$(mimetype -b "$imagePath")
 
-if [ "$IMAGE_MIME_TYPE" != "image/jpeg" ]; then
-	if [ "$IMAGE_MIME_TYPE" != "image/png" ]; then
-		die "Cover image isn't a jpg or png"
-	fi
+if [ "$imageMimeType" != "image/jpeg" -a "$imageMimeType" != "image/png" ]; then
+	die "Cover image isn't a jpg or png."
 fi
 
-# Export existing comments to file.
-COMMENTS_PATH="$(mktemp -t "tmp.XXXXXXXXXX")"
-vorbiscomment --list --raw "${OUTPUT_FILE}" > "${COMMENTS_PATH}"
+#Export existing comments to file
+commentsPath="$(mktemp -t "tmp.XXXXXXXXXX")"
+vorbiscomment --list --raw "${outputFile}" > "${commentsPath}"
 
-# Remove existing images.
-sed -i -e '/^metadata_block_picture/d' "${COMMENTS_PATH}"
+#Remove existing images
+sed -i -e '/^metadata_block_picture/d' "${commentsPath}"
 
-# Insert cover image from file.
+#Insert cover image from file
 
-# metadata_block_picture format.
-# See: https://xiph.org/flac/format.html#metadata_block_picture
-IMAGE_WITH_HEADER="$(mktemp -t "tmp.XXXXXXXXXX")"
-DESCRIPTION=""
+#metadata_block_picture format
+#See: https://xiph.org/flac/format.html#metadata_block_picture
+imageWithHeader="$(mktemp -t "tmp.XXXXXXXXXX")"
+description=""
 
-# Reset cache file.
-echo -n "" > "${IMAGE_WITH_HEADER}"
+#Reset cache file
+echo -n "" > "${imageWithHeader}"
 
-# Picture type <32>.
-printf "0: %.8x" 3 | xxd -r -g0 \
-      >> "${IMAGE_WITH_HEADER}"
-# Mime type length <32>.
-printf "0: %.8x" $(echo -n "${IMAGE_MIME_TYPE}" | wc -c) \
-        | xxd -r -g0 \
-      >> "${IMAGE_WITH_HEADER}"
-# Mime type (n * 8)
-echo -n "${IMAGE_MIME_TYPE}" >> "${IMAGE_WITH_HEADER}"
-# Description length <32>.
-printf "0: %.8x" $(echo -n "${DESCRIPTION}" | wc -c) \
-        | xxd -r -g0 \
-      >> "${IMAGE_WITH_HEADER}"
-# Description (n * 8)
-echo -n "${DESCRIPTION}" >> "${IMAGE_WITH_HEADER}"
-# Picture with <32>.
-printf "0: %.8x" 0 | xxd -r -g0 \
-      >> "${IMAGE_WITH_HEADER}"
-# Picture height <32>.
-printf "0: %.8x" 0 | xxd -r -g0 \
-      >> "${IMAGE_WITH_HEADER}"
-# Picture color depth <32>.
-printf "0: %.8x" 0 | xxd -r -g0 \
-      >> "${IMAGE_WITH_HEADER}"
-# Picture color count <32>.
-printf "0: %.8x" 0 | xxd -r -g0 \
-      >> "${IMAGE_WITH_HEADER}"
-# Image file size <32>.
-printf "0: %.8x" $(wc -c "${IMAGE_PATH}" \
-        | cut --delimiter=' ' --fields=1) \
-        | xxd -r -g0 \
-      >> "${IMAGE_WITH_HEADER}"
-# Image file.
-cat "${IMAGE_PATH}" >> "${IMAGE_WITH_HEADER}"
+#Picture type <32>
+printf "0: %.8x" 3 | xxd -r -g0 >> "${imageWithHeader}"
 
-echo "metadata_block_picture=$(base64 --wrap=0 < "${IMAGE_WITH_HEADER}")" >> "${COMMENTS_PATH}"
+#Mime type length <32>
+printf "0: %.8x" $(echo -n "${imageMimeType}" | wc -c) | xxd -r -g0 >> "${imageWithHeader}"
 
-# Update vorbis file comments.
-vorbiscomment --write --raw --commentfile "${COMMENTS_PATH}" "${OUTPUT_FILE}"
+#Mime type (n * 8)
+echo -n "${imageMimeType}" >> "${imageWithHeader}"
 
-# Delete cache file.
-rm "${IMAGE_WITH_HEADER}"
-# Delete comments file.
-rm "${COMMENTS_PATH}"
+#Description length <32>
+printf "0: %.8x" $(echo -n "${description}" | wc -c) | xxd -r -g0 >> "${imageWithHeader}"
+
+#Description (n * 8)
+echo -n "${description}" >> "${imageWithHeader}"
+
+#Picture with <32>
+printf "0: %.8x" 0 | xxd -r -g0  >> "${imageWithHeader}"
+
+#Picture height <32>
+printf "0: %.8x" 0 | xxd -r -g0 >> "${imageWithHeader}"
+
+#Picture color depth <32>
+printf "0: %.8x" 0 | xxd -r -g0 >> "${imageWithHeader}"
+
+#Picture color count <32>
+printf "0: %.8x" 0 | xxd -r -g0 >> "${imageWithHeader}"
+
+#Image file size <32>
+printf "0: %.8x" $(wc -c "${imagePath}" | cut --delimiter=' ' --fields=1) | xxd -r -g0 >> "${imageWithHeader}"
+
+#Image file
+cat "${imagePath}" >> "${imageWithHeader}"
+
+echo "metadata_block_picture=$(base64 --wrap=0 < "${imageWithHeader}")" >> "${commentsPath}"
+
+#Update vorbis file comments
+vorbiscomment --write --raw --commentfile "${commentsPath}" "${outputFile}"
+
+#Delete temp files
+rm "${imageWithHeader}"
+rm "${commentsPath}"
