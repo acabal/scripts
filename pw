@@ -3,6 +3,7 @@
 passwordFilePath="$HOME/.passwords" #No trailing slash
 clipboardTime=30
 configFile="$HOME/.config/pw/private-key"
+syncFile="$HOME/.config/pw/sync-credentials"
 recipient=""
 
 usage(){
@@ -28,6 +29,9 @@ USAGE
 
 	pw -e,--edit DOMAIN
 		Edit the information stored under that domain using a temporary file stored in a RAMFS mount.  Requires sudo privileges.
+	
+	pw -c,--sync [USER@HOST:DESTINATION]
+		Sync the $passwordFilePath/ folder to the USER@HOST:DESTINATION specified in ~/.config/pw/sync-credentials or as an argument.
 EOF
 	exit
 }
@@ -42,6 +46,7 @@ tempMountPoint="/tmp/pw" #No trailing slash
 require "gpg" "Try: apt-get install gnupg"
 require "xclip" "Try: apt-get install xclip"
 require "tree" "Try: apt-get install tree"
+require "rsync" "Try: apt-get install rsync"
 
 generatePassword(){
 	password=$(sort -R /usr/share/dict/words | head -n 100 | grep -i '^[a-z]*$' | head -n 4 | sed ':a;N;$!ba;s/\n/ /g')
@@ -65,6 +70,13 @@ generatePassword(){
 	echo -n "$password"
 }
 
+syncPasswords(){
+	#Remove any trailing slashes, then add one
+	target=${1%/}
+	target="$target/"
+	rsync -acz --progress --itemize-changes --partial -e ssh "$passwordFilePath/" "$target"
+}
+
 if [ -f "$configFile" ]; then
 	recipient=$(cat "$configFile")
 fi
@@ -82,6 +94,13 @@ if [ $# -eq 1 ]; then
 		sleep "$clipboardTime" && echo -n "" | xclip -selection clipboard &
 	elif [ "$1" = "-l" -o "$1" = "--list" ]; then
 		tree "$passwordFilePath" | sed "s/\.gpg$//" | sed -n -e :a -e '1,2!{P;N;D;};N;ba'
+	elif [ "$1" = "-c" -o "$1" = "--sync" ]; then
+		if [ -f "$syncFile" ]; then
+			destination=$(cat "$syncFile")
+			syncPasswords "$destination"
+		else
+			die "$syncFile does not exist."
+		fi
 	fi
 fi
 
@@ -199,5 +218,7 @@ if [ $# -eq 2 ]; then
 		else
 			die "File not found."
 		fi
+	elif [ "$1" = "-c" -o "$1" = "--sync" ]; then
+		syncPasswords "$2"
 	fi
 fi
