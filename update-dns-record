@@ -16,6 +16,8 @@ require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; 
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
+require "curl" "Try: apt-get install curl"
+
 dynamicHost=""
 linodeApiKey=""
 domainId=""
