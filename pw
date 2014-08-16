@@ -157,7 +157,7 @@ if [ $# -eq 2 ]; then
 		fi
 	elif [ "$1" = "-s" -o "$1" = "--show" ]; then
 		if [ -f "$passwordFilePath/$2.gpg" ]; then
-			text=$(gpg --decrypt --no-tty "$passwordFilePath/$2.gpg" 2> /dev/null)
+			text=$(gpg --use-agent --decrypt --no-tty "$passwordFilePath/$2.gpg" 2> /dev/null)
 			
 			if [ $? -ne 0 ]; then
 				die "Invalid password."
@@ -193,7 +193,7 @@ if [ $# -eq 2 ]; then
 			filename=$(basename "$2")
 			filePath="$tempMountPoint/$filename"
 			
-			gpg --decrypt --no-tty --output "$filePath" "$passwordFilePath/$2.gpg" 2> /dev/null
+			gpg --use-agent --decrypt --no-tty --output "$filePath" "$passwordFilePath/$2.gpg" 2> /dev/null
 			
 			if [ $? -ne 0 ]; then
 				sudo umount "$tempMountPoint"
