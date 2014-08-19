@@ -20,8 +20,6 @@ outputDir="."
 mobiExtractorPath="/usr/local/bin/mobi_unpack.py"
 filename=""
 
-require "$mobiExtractorPath" "See: http://wiki.mobileread.com/wiki/KindleUnpack"
-
 if [ $# -eq 0 ]; then
 	usage
 fi
@@ -52,6 +50,7 @@ fi
 
 #Handle .mobi files
 if file "$filename" | grep -i ": Mobipocket E-book" &> /dev/null; then
+	require "$mobiExtractorPath" "See: http://wiki.mobileread.com/wiki/KindleUnpack"
 	mkdir "$outputDir"
 	"$mobiExtractorPath" "$filename" "$outputDir" > /dev/null
 
