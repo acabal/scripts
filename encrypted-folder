@@ -23,6 +23,12 @@ if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 decryptedRoot="$HOME"
 
 require "encfs" "Try: apt-get install encfs"
+require "pip" "Try: apt-get install python-pip"
+#We require the keyring python library
+pip list | grep "keyring" &> /dev/null
+if [ $? -ne 0 ]; then
+	die "Python keyring library is not installed.  Try: pip install keyring"
+fi
 
 if [ $# -eq 0 ]; then
 	usage
