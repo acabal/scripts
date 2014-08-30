@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
 usage(){
-	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Check if the IP address of this host matches the DNS records of a remote host.  If it doesn't match, update the DNS records using the Linode API.
@@ -11,8 +10,8 @@ USAGE
 EOF
 	exit
 }
-die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
@@ -25,31 +24,31 @@ resourceId=""
 
 for i in "$@"
 do
-case $i in
+case "${i}" in
 	-h=*|--host=*)
-		dynamicHost=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		dynamicHost="$(echo ${i} | sed 's/[-a-zA-Z0-9]*=//')"
 	;;
 	-k=*|--api-key=*)
-		linodeApiKey=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		linodeApiKey="$(echo ${i} | sed 's/[-a-zA-Z0-9]*=//')"
 	;;
 	-d=*|--domain-id=*)
-		domainId=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		domainId="$(echo ${i} | sed 's/[-a-zA-Z0-9]*=//')"
 	;;
 	-r=*|--resource-id=*)
-		resourceId=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		resourceId="$(echo ${i} | sed 's/[-a-zA-Z0-9]*=//')"
 	;;
 esac
 done
 
-if [ "$dynamicHost" = "" -o "$linodeApiKey" = "" -o "$domainId" = "" -o "$resourceId" = "" ]; then
+if [ "${dynamicHost}" = "" -o "${linodeApiKey}" = "" -o "${domainId}" = "" -o "${resourceId}" = "" ]; then
 	usage
 fi
 
 #look up the existing dns entry
-dnsIp=$(dig +short "$dynamicHost")
+dnsIp=$(dig +short "${dynamicHost}")
 
-if [ "$dnsIp" = "" ]; then
-	die "Could not resolve $dynamicHost while looking up DNS records."
+if [ "${dnsIp}" = "" ]; then
+	die "Could not resolve ${dynamicHost} while looking up DNS records."
 fi
 
 #look up our external ip
@@ -59,8 +58,8 @@ if [ $? -ne 0 ]; then
 	die "Could not resolve ifconfig.me while looking up local IP."
 fi
 
-if [ "$dnsIp" != "$localIp" ]; then
-	curl "https://api.linode.com/?api_key=$linodeApiKey&api_action=domain.resource.update&domainid=$domainId&resourceid=$resourceId&target=$localIp" &> /dev/null
+if [ "${dnsIp}" != "${localIp}" ]; then
+	curl "https://api.linode.com/?api_key=${linodeApiKey}&api_action=domain.resource.update&domainid=${domainId}&resourceid=${resourceId}&target=${localIp}" > /dev/null 2>&1
 	
 	if [ $? -ne 0 ]; then
 		die "Could not connect to Linode API."

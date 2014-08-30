@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
 usage(){
-	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Play a sound and show a notification using notify-send.
@@ -645,6 +644,6 @@ gPO2EaqqKggIAgAAAADAaG/K2tjpyd/P22XqOgzA+/g4262ffvH5rXncP3u+UVEpi/KQI6qiVlfX
 OerXPnlcpsmwmMitBwAgmSAUjtwDAPTAfP/KfnwA8UjLEqa+5+qK98GBD8cyXF0BsHPjrjybd79M
 TfH/bHcOcMDZ3Pzxy6znf2Dq+4/N3/0AYEyxuQmwAAA="
 
-echo "$alertOgg" | base64 -d | cvlc --play-and-exit - &> /dev/null &
+printf "${alertOgg}" | base64 -d | cvlc --play-and-exit - > /dev/null 2>&1 &
 
 notify-send --urgency=low -i "terminal" "Command completed."

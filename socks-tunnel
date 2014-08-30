@@ -1,7 +1,6 @@
 #!/bin/bash
 
 usage(){
-	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Control a transparent system-level or browser-level SOCKS tunnel through a remote proxy.
@@ -20,16 +19,16 @@ USAGE
 EOF
 	exit
 }
-die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
-localPort=12345
-socksPort=11080 #The default socks port is 1080, but we use an alternate in case other services want to use that port
+localPort="12345"
+socksPort="11080" #The default socks port is 1080, but we use an alternate in case other services want to use that port
 remoteConnection=""
-tempFilePath=/tmp/socks-tunnel
-configFilePath="$HOME/.config/socks-tunnel/host"
+tempFilePath="/tmp/socks-tunnel"
+configFilePath="${HOME}/.config/socks-tunnel/host"
 command=""
 type="tun"
 
@@ -42,7 +41,7 @@ require "badvpn-tun2socks" "Try:\napt-add-repository ppa:ambrop7/badvpn\napt-get
 
 for i in "$@"
 do
-case $i in
+case "${i}" in
 	-s|--start)
 		command="start"
 	;;
@@ -56,7 +55,7 @@ case $i in
 		type="browser"
 	;;
 	-h=*|--host=*)
-		remoteConnection=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		remoteConnection="$(echo "${i}" | sed 's/[-a-zA-Z0-9]*=//')"
 	;;
 esac
 done
@@ -66,8 +65,8 @@ error(){
 }
 
 checkIfRunning(){
-	if [ -f "$tempFilePath" ]; then
-		if [ -s "$tempFilePath" ]; then
+	if [ -f "${tempFilePath}" ]; then
+		if [ -s "${tempFilePath}" ]; then
 			die "Network-layer-level SOCKS tunnel open."
 		else
 			die "Browser-level SOCKS tunnel open."
@@ -78,16 +77,16 @@ checkIfRunning(){
 isFirefoxRunning(){
 	#Get the PID for the Firefox process
 	ffpid=$(ps ux | awk '/firefox/ && !/awk/ && !/socks/ {print $2}')
-	[ -n "$ffpid" ]
+	[ -n "${ffpid}" ]
 }
 
 startTun(){
 	#Save our detected settings
-	remoteUser=`echo "$remoteConnection" | cut -d"@" -f1-1`
-	remoteHost=`echo "$remoteConnection" | cut -d"@" -f2-2`
+	remoteUser=`echo "${remoteConnection}" | cut -d"@" -f1-1`
+	remoteHost=`echo "${remoteConnection}" | cut -d"@" -f2-2`
 	gatewayIp=$(/sbin/ip route | awk '/default/ { print $3 }')
-	remoteIp=$(host -t a "$remoteHost" | awk '{print $4}')
-	echo -e "$gatewayIp\n$remoteIp" > "$tempFilePath"
+	remoteIp=$(host -t a "${remoteHost}" | awk '{print $4}')
+	printf "${gatewayIp}\n${remoteIp}" > "${tempFilePath}"
 
 	#Create the tun0 device
 	sudo openvpn --mktun --dev tun0 > /dev/null
@@ -96,51 +95,51 @@ startTun(){
 	sudo ifconfig tun0 10.0.0.1 netmask 255.255.255.0 > /dev/null
 	
 	#Enable the tun2socks program
-	badvpn-tun2socks --tundev tun0 --netif-ipaddr 10.0.0.2 --netif-netmask 255.255.255.0 --socks-server-addr 127.0.0.1:$socksPort > /dev/null & 
+	badvpn-tun2socks --tundev tun0 --netif-ipaddr 10.0.0.2 --netif-netmask 255.255.255.0 --socks-server-addr 127.0.0.1:${socksPort} > /dev/null & 
 	disown %badvpn
 	
 	#Open our socks proxy
-	ssh -D localhost:$socksPort -N -f $remoteConnection
+	ssh -D localhost:${socksPort} -N -f ${remoteConnection}
 
 	#Connect to tun2socks instead of our default gateway (router)
-	sudo route add "$remoteIp" gw "$gatewayIp" metric 5 
+	sudo route add "${remoteIp}" gw "${gatewayIp}" metric 5 
 	sudo route add default gw 10.0.0.2 metric 6 #connect to tun2socks instead of our default gateway (router)
-	sudo route del default gw "$gatewayIp" metric 0 #delete our default gateway connection
+	sudo route del default gw "${gatewayIp}" metric 0 #delete our default gateway connection
 }
 
 stopTun(){
 	#Restore our detected settings
-	gatewayIp=$(awk "NR==1" "$tempFilePath")
-	remoteIp=$(awk "NR==2" "$tempFilePath")
+	gatewayIp=$(awk "NR==1" "${tempFilePath}")
+	remoteIp=$(awk "NR==2" "${tempFilePath}")
 	
 	#Get the pid for the ssh and badvpn processes
 	sshPid=$(ps ux | awk '/ssh -D/ && !/awk/ {print $2}')
 	badvpnPid=$(ps ux | awk '/badvpn/ && !/awk/ {print $2}')
 
 	#Remove our socks routes and restore our default gateway route
-	sudo route del "$remoteIp" gw "$gatewayIp" metric 5 &> /dev/null
-	sudo route del default gw 10.0.0.2 metric 6 &> /dev/null
-	sudo route add default gw "$gatewayIp" metric 0 &> /dev/null
+	sudo route del "${remoteIp}" gw "${gatewayIp}" metric 5 > /dev/null 2>&1
+	sudo route del default gw 10.0.0.2 metric 6 > /dev/null 2>&1
+	sudo route add default gw "${gatewayIp}" metric 0 > /dev/null 2>&1
 	
 	#Kill the ssh and badvpn processes
-	kill -HUP $sshPid &> /dev/null
-	kill -HUP $badvpnPid &> /dev/null
+	kill -HUP ${sshPid} > /dev/null 2>&1
+	kill -HUP ${badvpnPid} > /dev/null 2>&1
 	
 	#Remove the tun0 device
 	sudo openvpn --rmtun --dev tun0 > /dev/null
 	
-	rm "$tempFilePath"
+	rm "${tempFilePath}"
 }
 
 startFirefox(){
-	ssh -D $localPort -N -f $remoteConnection
+	ssh -D ${localPort} -N -f ${remoteConnection}
 
 	if [ $? -ne 0 ]; then
 		die "Could not establish SSH connection."
 	else
-		touch "$tempFilePath"
+		touch "${tempFilePath}"
 		
-		echo -e "user_pref(\"network.proxy.socks\", \"localhost\");\nuser_pref(\"network.proxy.socks_port\", $localPort);\nuser_pref(\"network.proxy.socks_version\", 5);\nuser_pref(\"network.proxy.type\", 1);" > $(echo $(find ~/.mozilla/firefox -name '*.default')/user.js)
+		printf "user_pref(\"network.proxy.socks\", \"localhost\");\nuser_pref(\"network.proxy.socks_port\", ${localPort});\nuser_pref(\"network.proxy.socks_version\", 5);\nuser_pref(\"network.proxy.type\", 1);" > $(echo $(find ~/.mozilla/firefox -name '*.default')/user.js)
 
 		if isFirefoxRunning; then
 			echo "Restart Firefox to apply proxy changes."
@@ -153,17 +152,17 @@ stopFirefox(){
 		die "Firefox is still running."
 	fi
 	
-	rm "$tempFilePath"
+	rm "${tempFilePath}"
 	
 	echo "user_pref(\"network.proxy.type\", 5);" > $(echo $(find ~/.mozilla/firefox -name '*.default')/user.js)
 
 	#Get the PID for the SSH process
 	pid=$(ps ux | awk '/ssh -D/ && !/awk/ {print $2}')
 
-	if [ -z $pid ]; then
+	if [ -z "${pid}" ]; then
 		die "Could not find SSH process ID."
 	else
-		kill -HUP $pid &> /dev/null
+		kill -HUP "${pid}" > /dev/null 2>&1
 		
 		if isFirefoxRunning; then
 			echo "Restart Firefox to apply proxy changes."
@@ -171,38 +170,38 @@ stopFirefox(){
 	fi
 }
 
-if [ "$command" = "start" ]; then
+if [ "${command}" = "start" ]; then
 	checkIfRunning
 	
 	#If we haven't specified a host on the command line, try to find it in our config directory
-	if [ "$remoteConnection" = "" ]; then
-		if [ -f "$configFilePath" ]; then
-			remoteConnection=$(cat "$configFilePath")
+	if [ "${remoteConnection}" = "" ]; then
+		if [ -f "${configFilePath}" ]; then
+			remoteConnection=$(cat "${configFilePath}")
 		fi
 	fi
 	
-	if [ "$remoteConnection" = "" ]; then
+	if [ "${remoteConnection}" = "" ]; then
 		error
 	fi
 	
-	if [ "$type" = "tun" ]; then
+	if [ "${type}" = "tun" ]; then
 		startTun
-	elif [ "$type" = "browser" ]; then
+	elif [ "${type}" = "browser" ]; then
 		startFirefox
 	else
 		error
 	fi
-elif [ "$command" = "stop" ]; then
-	if [ -f "$tempFilePath" ]; then
-		if [ -s "$tempFilePath" ]; then
+elif [ "${command}" = "stop" ]; then
+	if [ -f "${tempFilePath}" ]; then
+		if [ -s "${tempFilePath}" ]; then
 			stopTun
 		else
 			stopFirefox
 		fi
 	fi
-elif [ "$command" = "status" ]; then
-	if [ -f "$tempFilePath" ]; then
-		if [ -s "$tempFilePath" ]; then
+elif [ "${command}" = "status" ]; then
+	if [ -f "${tempFilePath}" ]; then
+		if [ -s "${tempFilePath}" ]; then
 			echo "Socks proxy running using tun."
 		else
 			echo "Socks proxy running using SSH/Firefox."

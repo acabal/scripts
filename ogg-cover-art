@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
 usage(){
-	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Add cover art to an OGG file.
@@ -15,8 +14,8 @@ USAGE
 EOF
 	exit
 }
-die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
@@ -32,13 +31,13 @@ imagePath=""
 if [ $# -eq 1 ]; then
 	outputFile="$1"
 	dirName=$(dirname "$1")
-	imagePath="$dirName/cover.jpg"
-	if [ ! -f "$imagePath" ]; then
-		imagePath="$dirName/cover.jpeg"
-		if [ ! -f "$imagePath" ]; then
-			imagePath="$dirName/cover.png"
-			if [ ! -f "$imagePath" ]; then
-				die "Couldn't find a cover image in $dirName."
+	imagePath="${dirName}/cover.jpg"
+	if [ ! -f "${imagePath}" ]; then
+		imagePath="${dirName}/cover.jpeg"
+		if [ ! -f "${imagePath}" ]; then
+			imagePath="${dirName}/cover.png"
+			if [ ! -f "${imagePath}" ]; then
+				die "Couldn't find a cover image in ${dirName}."
 			fi
 		fi
 	fi
@@ -49,23 +48,23 @@ if [ $# -eq 2 ]; then
 	imagePath="$1"
 fi
 
-if [ ! -f "$outputFile" ]; then
+if [ ! -f "${outputFile}" ]; then
 	die "Couldn't find ogg file."
 fi
 
-if [ ! -f "$imagePath" ]; then
+if [ ! -f "${imagePath}" ]; then
 	die "Couldn't find cover image."
 fi
 
-imageMimeType=$(mimetype -b "$imagePath")
+imageMimeType=$(mimetype -b "${imagePath}")
 
-if [ "$imageMimeType" != "image/jpeg" -a "$imageMimeType" != "image/png" ]; then
+if [ "${imageMimeType}" != "image/jpeg" -a "${imageMimeType}" != "image/png" ]; then
 	die "Cover image isn't a jpg or png image."
 fi
 
-oggMimeType=$(mimetype -b "$outputFile")
+oggMimeType=$(mimetype -b "${outputFile}")
 
-if [ "$oggMimeType" != "audio/x-vorbis+ogg" ]; then
+if [ "${oggMimeType}" != "audio/x-vorbis+ogg" ]; then
 	die "Input file isn't an ogg file."
 fi
 

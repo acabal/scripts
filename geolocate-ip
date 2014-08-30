@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
 usage(){
-	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Use the ipinfodb.com API to geolocate a list of IP addresses from arguments, a file, or standard input.  By default the API key for ipinfodb.com is read from ~/.config/geolocate-ip/ipinfodb.com-api-key
@@ -22,8 +21,8 @@ USAGE
 EOF
 	exit
 }
-die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
@@ -34,11 +33,11 @@ apiKey=""
 pause=false
 ips=()
 
-function isValidIp(){
-    local  ip=$1
-    local  stat=1
+isValidIp(){
+    local ip="$1"
+    local stat=1
 
-    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+    if [[ "${ip}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         OIFS=$IFS
         IFS='.'
         ip=($ip)
@@ -50,7 +49,7 @@ function isValidIp(){
     return $stat
 }
 
-function geolocateIp(){
+geolocateIp(){
     	local ip=$1
 	if isValidIp $ip; then
 		if [ $countryOnly = true ]; then
@@ -113,18 +112,18 @@ else
 	#We have input from arguments
 	for ip in $@
 	do
-		ips=("${ips[@]}" "$ip")
+		ips=("${ips[@]}" "${ip}")
 	done
 fi
 
 if [ ${#ips[@]} -gt 1 ]; then
-	pause=true
+	pause="true"
 fi
 
 for ip in "${ips[@]}"
 do
-	geolocateIp $ip
-	if [ $pause = true ]; then
+	geolocateIp "${ip}"
+	if [ "${pause}" = "true" ]; then
 		sleep 1
 	fi
 done

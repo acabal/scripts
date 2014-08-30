@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-brightness=0
+brightness="0"
 
 usage(){
 	echo -n
@@ -9,23 +9,26 @@ DESCRIPTION
 	Set the laptop screen brightness level.
 	
 USAGE
-	set-brightness [0-15]
-		The brightness level defaults to $brightness.
+	set-brightness INTEGER
 EOF
 	exit
 }
+die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
-
 
 if [ $# -ne 0 ]; then
 	brightness="$1"
 fi
 
-if [[ "$brightness" =~ ^[0-9]+$ ]]; then
-	echo -e "$brightness" | sudo tee /sys/class/backlight/acpi_video0/brightness > /dev/null
-else
-	die "Expecting a number."
+case ${brightness#[-+]} in
+	*[!0-9]* ) die "Expecting an integer." ;;
+esac
+
+maxBrightness="$(cat /sys/class/backlight/acpi_video0/max_brightness)"
+
+if [ "${brightness}" -gt "${maxBrightness}" ]; then
+	die "Maximum brightness is ${maxBrightness}."
 fi
 
-
+printf "${brightness}" | sudo tee /sys/class/backlight/acpi_video0/brightness > /dev/null

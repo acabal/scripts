@@ -1,7 +1,6 @@
-#!/bin/zsh
+#!/bin/sh
 
 usage(){
-	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Open or resume an SSH connection using GNOME Terminal and MOSH.
@@ -20,4 +19,4 @@ fi
 
 profile=`echo "$1" | cut -d"@" -f2-2`
 
-gnome-terminal --disable-factory --title="$profile" --window-with-profile="$profile" -x zsh -c "mosh $1 -- zsh -c \"tmux a\""
+gnome-terminal --disable-factory --title="${profile}" --window-with-profile="${profile}" -x zsh -c "mosh $1 -- zsh -c \"tmux a\""

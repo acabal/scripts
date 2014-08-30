@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
 usage(){
-	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Display the gateway (typically the router) address of the current network.
@@ -18,21 +17,19 @@ EOF
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
-while read -r line; do
-	flagsColumn=$(echo "$line" | tr -s ' '| cut -d ' ' -f 4)
+route | while read -r line; do
+	flagsColumn=$(echo "${line}" | tr -s ' '| cut -d ' ' -f 4)
 	
-	if [ "$flagsColumn" != "Flags" -a "$flagsColumn" != "table" ]; then
-		flags=$(echo "$flagsColumn" | egrep "G")
-		if [ "$flags" != "" ]; then
-			address=$(echo "$line" | tr -s ' '| cut -d ' ' -f 2)
+	if [ "${flagsColumn}" != "Flags" -a "${flagsColumn}" != "table" ]; then
+		flags=$(echo "${flagsColumn}" | egrep "G")
+		if [ "${flags}" != "" ]; then
+			address=$(echo "${line}" | tr -s ' '| cut -d ' ' -f 2)
 			
 			if [ $# -eq 0 ]; then
-				echo "http://$address"
+				echo "http://${address}"
 			elif [ "$1" = "-o" -o "$1" = "--open" ]; then
-				xdg-open "http://$address"
+				xdg-open "http://${address}"
 			fi
-			
-			
 		fi
 	fi
-done <<< "$(route)"
+done

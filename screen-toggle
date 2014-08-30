@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
 usage(){
-	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Toggle the laptop display on or off.
@@ -11,26 +10,47 @@ USAGE
 EOF
 	exit
 }
-die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
 require "xdotool" "Try: apt-get install xdotool"
 
-screenOffLockFile=/tmp/screen-toggle-lock
+screenOffLockFile="/tmp/screen-toggle-lock"
 
-if [ -f $screenOffLockFile ];
+if [ -f ${screenOffLockFile} ];
 then
-	rm $screenOffLockFile
-	notify-send "Screen on" -i /usr/share/icons/gnome/48x48/devices/computer.png
+	rm ${screenOffLockFile}
+	
+	#Enable mice and trackpads
+	xinput list | grep -E --only-matching "id=[0-9]+\s*\[slave\s+pointer" | grep -E --only-matching "[0-9]+" | while read -r deviceId; do
+	echo a
+		xinput --set-prop "${deviceId}" "Device Enabled" 1
+	done
+	
+	#Turn on the screen
 	xset dpms force on
+	
+	#Simulate mouse movement to ensure the screen stays on
+	#xdotool mousemove 0 0 mousemove restore
+	
+	#Show a notice
+	notify-send "Screen on" -i /usr/share/icons/gnome/48x48/devices/computer.png
 else
-	touch $screenOffLockFile
-	sleep .5
+	touch "${screenOffLockFile}"
+
+	#Disable mice and trackpads
+	xinput list | grep -E --only-matching "id=[0-9]+\s*\[slave\s+pointer" | grep -E --only-matching "[0-9]+" | while read -r deviceId; do
+	echo a
+		xinput --set-prop "${deviceId}" "Device Enabled" 0
+	done
+	
+	xset dpms force off
+	
 	while true 
 	do
-		if [ -f $screenOffLockFile ];
+		if [ -f "${screenOffLockFile}" ];
 		then
 			xset dpms force off
 		else
@@ -41,5 +61,5 @@ else
 	xset dpms force on
 	
 	#Simulate mouse movement to ensure the screen stays on
-	xdotool mousemove 0 0 mousemove restore
+	#xdotool mousemove 0 0 mousemove restore
 fi

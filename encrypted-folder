@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
 usage(){
-	echo -n
 	fmt <<EOF
 DESCRIPTION
 	Create, mount, and unmount encfs volumes.
@@ -15,17 +14,17 @@ USAGE
 EOF
 	exit
 }
-die(){ echo -e "Error: ${1:-"Unknown error at line $LINENO."}" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.$suggestion"; } }
+die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
+require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
-decryptedRoot="$HOME"
+decryptedRoot="${HOME}"
 
 require "encfs" "Try: apt-get install encfs"
 require "pip" "Try: apt-get install python-pip"
 #We require the keyring python library
-pip list | grep "keyring" &> /dev/null
+pip freeze 2> /dev/null | grep "keyring" > /dev/null 2>&1
 if [ $? -ne 0 ]; then
 	die "Python keyring library is not installed.  Try: pip install keyring"
 fi
@@ -37,13 +36,16 @@ fi
 if [ $# -eq 1 ]; then
 	if [ "$1" = "set-password" ]; then
 		#This currently doesn't seem to work with 12.04 LTS.
+		die "Currently broken.  Sorry!"
 		me=$(whoami)
-		echo "New password:"
-		read -s pw
-		python -c "import keyring;print keyring.set_password('""encrypted-folder""', '""$me""', '""$pw""')" &> /dev/null
+		printf "New password:"
+		stty -echo
+		read pw
+		stty echo
+		python -c "import keyring;print keyring.set_password('""encrypted-folder""', '""${me}""', '""${pw}""')" > /dev/null 2>&1
 	elif [ "$1" = "--unmount" -o "$1" = "-u" ]; then
-		find "$decryptedRoot" -maxdepth 1 -type d -name '*.decrypted' -exec fusermount -u {} \;
-		find "$decryptedRoot" -maxdepth 1 -type d -name '*.decrypted' -exec rmdir {} \;
+		find "${decryptedRoot}" -maxdepth 1 -type d -name '*.decrypted' -exec fusermount -u {} \;
+		find "${decryptedRoot}" -maxdepth 1 -type d -name '*.decrypted' -exec rmdir {} \;
 	else
 		die "Invalid options.  Use -h for help."
 	fi
@@ -52,36 +54,36 @@ fi
 if [ $# -eq 2 ]; then
 	if [ "$1" = "--mount" -o "$1" = "-m" ]; then
 		encryptedFolderPath=$(readlink -f "$2")
-		encryptedFolder=$(basename "$encryptedFolderPath")
-		decryptedFolderPath="$decryptedRoot"/"$encryptedFolder".decrypted
+		encryptedFolder=$(basename "${encryptedFolderPath}")
+		decryptedFolderPath="${decryptedRoot}"/"${encryptedFolder}".decrypted
 		me=$(whoami)
 		
-		if [ -d "$decryptedFolderPath" ] ; then
+		if [ -d "${decryptedFolderPath}" ] ; then
 			die "Directory already mounted."
 		fi
 		
-		mkdir -p "$encryptedFolderPath" #in case we're creating a new volume
-		mkdir -p "$decryptedFolderPath"
+		mkdir -p "${encryptedFolderPath}" #in case we're creating a new volume
+		mkdir -p "${decryptedFolderPath}"
 		
 		#Do we have a stored password?  If so, use it
-		pw=$(python -c "import keyring;print keyring.get_password('encrypted-folder', '$me')")
+		pw=$(python -c "import keyring;print keyring.get_password('encrypted-folder', '${me}')")
 		
-		if [ "$pw" = "None" ]; then
-			encfs "$encryptedFolderPath" "$decryptedFolderPath"
+		if [ "${pw}" = "None" ]; then
+			encfs "${encryptedFolderPath}" "${decryptedFolderPath}"
 		else
-			echo -n "$pw" | encfs -S "$encryptedFolderPath" "$decryptedFolderPath"
+			printf "${pw}" | encfs -S "${encryptedFolderPath}" "${decryptedFolderPath}"
 		fi
 		
 		if [ "$?" -eq 0 ]; then
-			echo "Mounted at $decryptedFolderPath/"
+			printf "Mounted at %s/\n" "${decryptedFolderPath}"
 		else
-			rmdir "$decryptedFolderPath"
+			rmdir "${decryptedFolderPath}"
 		fi
 	elif [ "$1" = "--unmount" -o "$1" = "-u" ]; then
 		decryptedFolderPath=$(readlink -f "$2")
-		if [ -d "$decryptedFolderPath" ] ; then
-			fusermount -u "$decryptedFolderPath"
-			rmdir "$decryptedFolderPath"
+		if [ -d "${decryptedFolderPath}" ] ; then
+			fusermount -u "${decryptedFolderPath}"
+			rmdir "${decryptedFolderPath}"
 		else
 			die "Not a directory."
 		fi
@@ -89,4 +91,3 @@ if [ $# -eq 2 ]; then
 		die "Invalid options.  Use -h for help."
 	fi
 fi
-
