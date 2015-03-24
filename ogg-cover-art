@@ -56,15 +56,15 @@ if [ ! -f "${imagePath}" ]; then
 	die "Couldn't find cover image."
 fi
 
-imageMimeType=$(mimetype -b "${imagePath}")
+imageMimeType=$(file -b --mime-type "${imagePath}")
 
 if [ "${imageMimeType}" != "image/jpeg" -a "${imageMimeType}" != "image/png" ]; then
 	die "Cover image isn't a jpg or png image."
 fi
 
-oggMimeType=$(mimetype -b "${outputFile}")
+oggMimeType=$(file -b --mime-type "${outputFile}")
 
-if [ "${oggMimeType}" != "audio/x-vorbis+ogg" ]; then
+if [ "${oggMimeType}" != "audio/x-vorbis+ogg" -a "${oggMimeType}" != "audio/ogg" ]; then
 	die "Input file isn't an ogg file."
 fi
 
