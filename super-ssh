@@ -19,4 +19,4 @@ fi
 
 profile=`echo "$1" | cut -d"@" -f2-2`
 
-gnome-terminal --disable-factory --title="${profile}" --window-with-profile="${profile}" -x zsh -c "mosh $1 -- zsh -c \"tmux a\""
+gnome-terminal --title="${profile}" --window-with-profile="${profile}" -x zsh -c "mosh $1 -- zsh -c \"tmux a\""
