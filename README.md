@@ -53,5 +53,8 @@ Open or resume an SSH connection using GNOME Terminal and MOSH.
 ##todo
 Manage the ~/.todo todo file.
 
-##update-dns-record
+##update-linode-dns-record
 Check if the IP address of this host matches the DNS records of a remote host.  If it doesn't match, update the DNS records using the Linode API.
+
+##update-digital-ocean-dns-record
+Check if the IP address of this host matches the DNS records of a remote host.  If it doesn't match, update the DNS records using the Digital Ocean API.
