@@ -17,6 +17,9 @@ if [ $# -eq 0 ]; then
 	usage
 fi
 
+#Prevent mosh from prefixing [mosh] to the window we launch
+export MOSH_TITLE_NOPREFIX=1
+
 profile=`echo "$1" | cut -d"@" -f2-2`
 
-gnome-terminal --title="${profile}" --window-with-profile="${profile}" -x zsh -c "mosh $1 -- zsh -c \"tmux a\""
+gnome-terminal --window-with-profile="${profile}" -x zsh -c "mosh $1 tmux a"
