@@ -15,51 +15,25 @@ require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; 
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
 #End boilerplate
 
-require "xdotool" "Try: apt-get install xdotool"
+screenOffLockFile="/tmp/screen-toggle-lock/"
 
-screenOffLockFile="/tmp/screen-toggle-lock"
-
-if [ -f ${screenOffLockFile} ];
-then
-	rm ${screenOffLockFile}
-	
-	#Enable mice and trackpads
-	xinput list | grep -E --only-matching "id=[0-9]+\s*\[slave\s+pointer" | grep -E --only-matching "[0-9]+" | while read -r deviceId; do
-	echo a
-		xinput --set-prop "${deviceId}" "Device Enabled" 1
-	done
-	
-	#Turn on the screen
-	xset dpms force on
-	
-	#Simulate mouse movement to ensure the screen stays on
-	#xdotool mousemove 0 0 mousemove restore
-	
-	#Show a notice
-	notify-send "Screen on" -i /usr/share/icons/gnome/48x48/devices/computer.png
-else
-	touch "${screenOffLockFile}"
-
-	#Disable mice and trackpads
-	xinput list | grep -E --only-matching "id=[0-9]+\s*\[slave\s+pointer" | grep -E --only-matching "[0-9]+" | while read -r deviceId; do
-	echo a
-		xinput --set-prop "${deviceId}" "Device Enabled" 0
-	done
-	
-	xset dpms force off
-	
-	while true 
+if mkdir "${screenOffLockFile}"; then
+	while :
 	do
-		if [ -f "${screenOffLockFile}" ];
-		then
-			xset dpms force off
-		else
-			break
+		xset q | grep --quiet "Monitor is Off"
+		if [ $? -ne 0 ]; then
+			if [ -d ${screenOffLockFile} ]; then
+				xset dpms force off
+			else
+				xset dpms force on
+				
+				exit
+			fi
 		fi
-		sleep 2
+		sleep .5
 	done
+else
+	rm -rf "${screenOffLockFile}"
 	xset dpms force on
-	
-	#Simulate mouse movement to ensure the screen stays on
-	#xdotool mousemove 0 0 mousemove restore
+	#xbacklight -time 0 -set 100
 fi
