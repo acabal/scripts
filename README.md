@@ -23,9 +23,6 @@ Use the ipinfodb.com API to geolocate a list of IP addresses from arguments, a f
 ##kindle-sync
 Compile and sync ebooks in ~/documents/ebooks/ to an attached Kindle device, then eject it.  Epub files are compiled to mobi files and cover thumbnails are transferred automatically.
 
-##lock-after-login
-Lock the screen, then simulate a mouse movement to immediately wake the screen up.
-
 ##ogg-cover-art
 Add cover art to an OGG file.
 
@@ -41,17 +38,11 @@ Automatically remove unused kernels from the system.
 ##screen-toggle
 Toggle the laptop display on or off.
 
-##set-brightness
-Set the laptop screen brightness level.
-
 ##socks-tunnel
 Control a transparent system-level or browser-level SOCKS tunnel through a remote proxy.
 
 ##super-ssh
 Open or resume an SSH connection using GNOME Terminal and MOSH.
-
-##todo
-Manage the ~/.todo todo file.
 
 ##update-linode-dns-record
 Check if the IP address of this host matches the DNS records of a remote host.  If it doesn't match, update the DNS records using the Linode API.
