@@ -22,4 +22,7 @@ export MOSH_TITLE_NOPREFIX=1
 
 profile=`echo "$1" | cut -d"@" -f2-2`
 
-gnome-terminal --window-with-profile="${profile}" -x zsh -c "mosh $1 tmux a"
+#This allows us to use the gnome-keyring-daemon SSH key storage from our logged in session@
+SSH_AUTH_SOCK=$(gnome-keyring-daemon -s | sed "s/SSH_AUTH_SOCK=//")
+
+gnome-terminal --window-with-profile="${profile}" -e "mosh $1 tmux a"
