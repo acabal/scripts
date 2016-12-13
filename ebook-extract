@@ -56,7 +56,7 @@ if file "${filename}" | grep -i ": Mobipocket E-book" > /dev/null 2>&1; then
 	"${mobiExtractorPath}" "${filename}" "${outputDir}" > /dev/null
 
 #Handle .epub files
-elif file "${filename}" | grep -i ": EPUB" > /dev/null 2>&1; then
+elif file "${filename}" | grep -i " EPUB" > /dev/null 2>&1; then
 	mkdir "${outputDir}"
 	unzip "${filename}" -d "${outputDir}" > /dev/null
 else
