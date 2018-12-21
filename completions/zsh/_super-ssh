@@ -1,4 +1,4 @@
 #compdef super-ssh
 
-hosts=(`awk '{print $1}' ~/.ironhide/hosts`)
+hosts=(`awk '{print $1}' ~/.personal/misc/hosts`)
 _arguments "1:*:($hosts)"
