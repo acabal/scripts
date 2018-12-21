@@ -4,25 +4,25 @@ usage(){
 	fmt <<EOF
 DESCRIPTION
 	Open or resume an SSH connection using GNOME Terminal and MOSH.
-	
+
 USAGE
 	super-ssh USER@HOSTNAME
 EOF
 	exit
 }
 if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
-#End boilerplate
+# End boilerplate
 
 if [ $# -eq 0 ]; then
 	usage
 fi
 
-#Prevent mosh from prefixing [mosh] to the window we launch
+# Prevent mosh from prefixing [mosh] to the window we launch
 export MOSH_TITLE_NOPREFIX=1
 
 profile=`echo "$1" | cut -d"@" -f2-2`
 
-#This allows us to use the gnome-keyring-daemon SSH key storage from our logged in session@
+# This allows us to use the gnome-keyring-daemon SSH key storage from our logged in session@
 SSH_AUTH_SOCK=$(gnome-keyring-daemon -s | sed "s/SSH_AUTH_SOCK=//")
 
-gnome-terminal --window-with-profile="${profile}" -e "mosh $1 tmux a"
+gnome-terminal --window-with-profile="${profile}" -e "mosh $1 -- tmux -f \\$HOME/.config/tmux/tmux.conf a"
