@@ -20,9 +20,11 @@ fi
 # Prevent mosh from prefixing [mosh] to the window we launch
 export MOSH_TITLE_NOPREFIX=1
 
-profile=`echo "$1" | cut -d"@" -f2-2`
+profile=$(echo "$1" | cut -d"@" -f2-2)
 
 # This allows us to use the gnome-keyring-daemon SSH key storage from our logged in session@
+export SSH_AUTH_SOCK
+
 SSH_AUTH_SOCK=$(gnome-keyring-daemon -s | sed "s/SSH_AUTH_SOCK=//")
 
-gnome-terminal --window-with-profile="${profile}" -e "mosh $1 -- tmux -f \\$HOME/.config/tmux/tmux.conf a"
+gnome-terminal --window-with-profile="${profile}" -e "mosh $1 -- tmux -f \\$HOME/.config/tmux/tmux.conf a" 2> /dev/null
