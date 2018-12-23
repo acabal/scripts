@@ -18,7 +18,7 @@ if [ $# -eq 0 ]; then
 fi
 
 # Prevent mosh from prefixing [mosh] to the window we launch
-export MOSH_TITLE_NOPREFIX=1
+# export MOSH_TITLE_NOPREFIX=1
 
 profile=$(echo "$1" | cut -d"@" -f2-2)
 
@@ -27,4 +27,6 @@ export SSH_AUTH_SOCK
 
 SSH_AUTH_SOCK=$(gnome-keyring-daemon -s | sed "s/SSH_AUTH_SOCK=//")
 
-gnome-terminal --window-with-profile="${profile}" -e "mosh $1 -- tmux -f \\$HOME/.config/tmux/tmux.conf a" 2> /dev/null
+# Can't use mosh because it doesn't support true color until mosh 1.3.2.
+# When it does, use: mosh $1 -- tmux -f \\$HOME/.config/tmux/tmux.conf a
+gnome-terminal --window-with-profile="${profile}" -e "ssh $1 -t tmux -f \\$HOME/.config/tmux/tmux.conf a" 2> /dev/null
