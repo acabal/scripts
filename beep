@@ -10,8 +10,8 @@ USAGE
 EOF
 	exit
 }
-if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
-#End boilerplate
+if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
+# End boilerplate
 
 alertOgg="T2dnUwACAAAAAAAAAAA5JgAAAAAAAGr9KJMBHgF2b3JiaXMAAAAAAoC7AAAAAAAAAHECAAAAAAC4
 AU9nZ1MAAAAAAAAAAAAAOSYAAAEAAABzUFzRES3/////////////////////A3ZvcmJpcx0AAABY
@@ -644,6 +644,6 @@ gPO2EaqqKggIAgAAAADAaG/K2tjpyd/P22XqOgzA+/g4262ffvH5rXncP3u+UVEpi/KQI6qiVlfX
 OerXPnlcpsmwmMitBwAgmSAUjtwDAPTAfP/KfnwA8UjLEqa+5+qK98GBD8cyXF0BsHPjrjybd79M
 TfH/bHcOcMDZ3Pzxy6znf2Dq+4/N3/0AYEyxuQmwAAA="
 
-printf "${alertOgg}" | base64 -d | cvlc --play-and-exit - > /dev/null 2>&1 &
+printf "%s" "${alertOgg}" | base64 -d | cvlc --play-and-exit - > /dev/null 2>&1 &
 
 notify-send --urgency=low -i "terminal" "Command completed."

@@ -4,17 +4,17 @@ usage(){
 	fmt <<EOF
 DESCRIPTION
 	Display the gateway (typically the router) address of the current network.
-	
+
 USAGE
 	gateway
 		Print the gateway address to standard output.
-		
+
 	gateway -o,--open
 		Open the gateway address in the default web browser.
 EOF
 	exit
 }
-if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
+if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
 # End boilerplate
 
 ip r | grep -E "default via (.+?)" | cut -d " " -f 3

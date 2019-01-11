@@ -4,29 +4,28 @@ usage(){
 	fmt <<EOF
 DESCRIPTION
 	Toggle the laptop display on or off.
-	
+
 USAGE
 	screen-toggle
 EOF
 	exit
 }
-die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
-if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
-#End boilerplate
+die(){ printf "Error: %s\n" "${1}" 1>&2; exit 1; }
+require(){ command -v "${1}" > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
+# End boilerplate
 
 screenOffLockFile="/tmp/screen-toggle-lock/"
 
 if mkdir "${screenOffLockFile}"; then
 	while :
 	do
-		xset q | grep --quiet "Monitor is Off"
-		if [ $? -ne 0 ]; then
+		if ! xset q | grep --quiet "Monitor is Off"; then
 			if [ -d ${screenOffLockFile} ]; then
 				xset dpms force off
 			else
 				xset dpms force on
-				
+
 				exit
 			fi
 		fi
@@ -35,5 +34,4 @@ if mkdir "${screenOffLockFile}"; then
 else
 	rm -rf "${screenOffLockFile}"
 	xset dpms force on
-	#xbacklight -time 0 -set 100
 fi

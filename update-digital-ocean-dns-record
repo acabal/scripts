@@ -4,16 +4,16 @@ usage(){
 	fmt <<EOF
 DESCRIPTION
 	Check if the IP address of this host matches the DNS records of a remote host.  If it doesn't match, update the DNS records using the Digital Ocean API.
-	
+
 USAGE
 	update-digital-ocean-dns-record -d,--domain=DOMAIN -s,--subdomain=SUBDOMAIN -k,--api-key=DIGITALOCEANAPIKEY
 EOF
 	exit
 }
-die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
-if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
-#End boilerplate
+die(){ printf "Error: %s\n" "${1}" 1>&2; exit 1; }
+require(){ command -v "${1}" > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
+# End boilerplate
 
 require "curl" "Try: apt-get install curl"
 require "jq" "Try: apt-get install jq"
@@ -37,18 +37,18 @@ case "${i}" in
 esac
 done
 
-if [ "${apiKey}" = "" -o "${domain}" = "" -o "${subdomain}" = "" ]; then
+if [ "${apiKey}" = "" ] || [ "${domain}" = "" ] || [ "${subdomain}" = "" ]; then
 	usage
 fi
 
-#look up the existing dns entry
+# look up the existing dns entry
 dnsIp=$(dig +short "${domain}")
 
 if [ "${dnsIp}" = "" ]; then
 	die "Couldn't resolve ${domain} while looking up DNS records."
 fi
 
-#look up our external ip
+# look up our external ip
 localIp=$(curl ifconfig.me 2> /dev/null)
 
 if [ $? -ne 0 ]; then
@@ -56,13 +56,13 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ "${dnsIp}" != "${localIp}" ]; then
-	#Get the record ID from Digital Ocean
+	# Get the record ID from Digital Ocean
 	subdomainId=$(curl --silent --request GET --header "Content-Type: application/json" --header "Authorization: Bearer ${apiKey}" "https://api.digitalocean.com/v2/domains/${domain}/records" | jq ".[] | . [] | select(.name==\"${subdomain}\")" 2>/dev/null | grep "id" | sed --regexp-extended "s/[^0-9]//g")
-	
+
 	if [ $? -ne 0 ]; then
 		die "Couldn't get subdomain ID from Digital Ocean."
 	fi
-	
+
 	curl --silent --request PUT --header "Content-Type: application/json" --header "Authorization: Bearer ${apiKey}" -d "{\"data\":\"${localIp}\"}" "https://api.digitalocean.com/v2/domains/${domain}/records/${subdomainId}" > /dev/null
 
 	if [ $? -ne 0 ]; then

@@ -4,16 +4,16 @@ usage(){
 	fmt <<EOF
 DESCRIPTION
 	Check if the IP address of this host matches the DNS records of a remote host.  If it doesn't match, update the DNS records using the Linode API.
-	
+
 USAGE
 	update-dns-record -h,--host=HOSTNAME -k,--api-key=LINODEAPIKEY -d,--domain-id=LINODEDOMAINID -r,--resource-id=LINODERESOURCEID
 EOF
 	exit
 }
-die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
-if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
-#End boilerplate
+die(){ printf "Error: %s\n" "${1}" 1>&2; exit 1; }
+require(){ command -v "${1}" > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
+# End boilerplate
 
 require "curl" "Try: apt-get install curl"
 
@@ -40,18 +40,18 @@ case "${i}" in
 esac
 done
 
-if [ "${dynamicHost}" = "" -o "${linodeApiKey}" = "" -o "${domainId}" = "" -o "${resourceId}" = "" ]; then
+if [ "${dynamicHost}" = "" ] || [ "${linodeApiKey}" = "" ] || [ "${domainId}" = "" ] | [ "${resourceId}" = "" ]; then
 	usage
 fi
 
-#look up the existing dns entry
+# look up the existing dns entry
 dnsIp=$(dig +short "${dynamicHost}")
 
 if [ "${dnsIp}" = "" ]; then
 	die "Could not resolve ${dynamicHost} while looking up DNS records."
 fi
 
-#look up our external ip
+# look up our external ip
 localIp=$(curl ifconfig.me 2> /dev/null)
 
 if [ $? -ne 0 ]; then
@@ -60,7 +60,7 @@ fi
 
 if [ "${dnsIp}" != "${localIp}" ]; then
 	curl "https://api.linode.com/?api_key=${linodeApiKey}&api_action=domain.resource.update&domainid=${domainId}&resourceid=${resourceId}&target=${localIp}" > /dev/null 2>&1
-	
+
 	if [ $? -ne 0 ]; then
 		die "Could not connect to Linode API."
 	fi

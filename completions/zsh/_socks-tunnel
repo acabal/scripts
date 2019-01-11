@@ -23,5 +23,5 @@ case $state in
 			;;
 		esac
 	;;
-esac 
+esac
 

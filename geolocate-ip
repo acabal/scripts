@@ -7,24 +7,24 @@ DESCRIPTION
 
 USAGE
 	geolocate-ip [-f,--file=FILENAME] [-c,--country-only] [-k,--api-key=APIKEY] [IPADDRESS[ IPADDRESS ...]]
-	
-		-f,--file		Read the IPs from the specified 
-					file, one per line.  Ignore any 
-					IP addresses that are passed as 
+
+		-f,--file		Read the IPs from the specified
+					file, one per line.  Ignore any
+					IP addresses that are passed as
 					command-line arguments.
-		
-		-c,--country-only	Get country-level information 
+
+		-c,--country-only	Get country-level information
 					instead of city-level.  Faster.
-		
-		-k,--api-key		Specify a ipinfodb.com API key 
+
+		-k,--api-key		Specify a ipinfodb.com API key
 					to use when making API requests.
 EOF
 	exit
 }
-die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
-if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
-#End boilerplate
+die(){ printf "Error: %s\n" "${1}" 1>&2; exit 1; }
+require(){ command -v "${1}" > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
+# End boilerplate
 
 countryOnly=false
 filename=""
@@ -57,11 +57,11 @@ geolocateIp(){
 		else
 			loc=$(curl -s "http://api.ipinfodb.com/v3/ip-city/?key=$apiKey&ip=$ip" 2> /dev/null)
 		fi
-		
-		#Remove useless trailing information and prettyify the output a little
+
+		# Remove useless trailing information and prettyify the output a little
 		loc=$(echo "$loc" | sed 's/OK;;//')
 		loc=$(echo "$loc" | sed 's/;/\t/g')
-		
+
 		echo "$loc"
 	fi
 }
@@ -70,13 +70,13 @@ for i in "$@"
 do
 case $i in
 	-f=*|--file=*)
-		filename=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		filename=$(echo "$i" | sed 's/[-a-zA-Z0-9]*=//')
 	;;
 	-c|--country-only)
 		countryOnly=true
 	;;
 	-k=*|--api-key=*)
-		apiKey=`echo $i | sed 's/[-a-zA-Z0-9]*=//'`
+		apiKey=$(echo "$i" | sed 's/[-a-zA-Z0-9]*=//')
 	;;
 esac
 done
@@ -92,15 +92,15 @@ if [ "$apiKey" = "" ]; then
 fi
 
 if [ "$filename" != "" ]; then
-	#We have input from a file
+	# We have input from a file
 	if [ -e "$filename" ]; then
-		for ip in `cat "$filename"`
+		for ip in $(cat "$filename")
 		do
 			ips=("${ips[@]}" "$ip")
 		done
 	fi
 else
-	#We have piped input
+	# We have piped input
 	if readlink /proc/$$/fd/0 | grep -q "^pipe:"; then
   		input=$(cat)
   		input=$(echo -e "$input" | sed 's/\s/\n/g')
@@ -109,14 +109,14 @@ else
 		done <<< "$input"
   	fi
 
-	#We have input from arguments
+	# We have input from arguments
 	for ip in $@
 	do
 		ips=("${ips[@]}" "${ip}")
 	done
 fi
 
-if [ ${#ips[@]} -gt 1 ]; then
+if [ ${# ips[@]} -gt 1 ]; then
 	pause="true"
 fi
 

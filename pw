@@ -1,6 +1,6 @@
 #!/bin/bash
 
-passwordFilePath="${HOME}/.passwords" #No trailing slash
+passwordFilePath="${HOME}/.passwords" # No trailing slash
 clipboardTime=30
 configFile="${HOME}/.config/pw/private-key"
 syncFile="${HOME}/.config/pw/sync-credentials"
@@ -10,7 +10,7 @@ usage(){
 	fmt <<EOF
 DESCRIPTION
 	Create, edit, and view gpg-encrypted passwords stored in the ${passwordFilePath}/ folder.
-	
+
 	By default, pw encrypts passwords symmetrically using a passphrase.  To encrypt with a GPG key instead, create the file ~/.config/pw/private-key containing the email address of the private key to use.  The private key must be on your keychain.
 
 USAGE
@@ -19,7 +19,7 @@ USAGE
 
 	pw -g,--generate [DOMAIN]
 		Generate and print a new strong password to stdout and copy it to the clipboard for ${clipboardTime} seconds.  If invoked with a domain name, additionally prompt for a login, then store the login and generated password in the password store.
-	
+
 	pw -a,--add DOMAIN
 		Prompt for a login and password for a domain, then store those credentials in the password store.
 
@@ -28,19 +28,19 @@ USAGE
 
 	pw -e,--edit DOMAIN
 		Edit the information stored under that domain using a temporary file stored in a RAMFS mount.  Requires sudo privileges.
-	
+
 	pw -c,--sync [USER@HOST:DESTINATION]
 		Sync the ${passwordFilePath}/ folder to the USER@HOST:DESTINATION specified in ~/.config/pw/sync-credentials or as an argument.
 EOF
 	exit
 }
-die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
-if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
-#End boilerplate
+die(){ printf "Error: %s\n" "${1}" 1>&2; exit 1; }
+require(){ command -v "${1}" > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
+# End boilerplate
 
-specialCharacters="01234567890!@#$%^&*(){}.,:;"
-tempMountPoint="/tmp/pw" #No trailing slash
+specialCharacters="01234567890!@# $%^&*(){}.,:;"
+tempMountPoint="/tmp/pw" # No trailing slash
 
 require "gpg" "Try: apt-get install gnupg"
 require "xclip" "Try: apt-get install xclip"
@@ -49,28 +49,28 @@ require "rsync" "Try: apt-get install rsync"
 
 generatePassword(){
 	password=$(sort -R /usr/share/dict/words | head -n 100 | grep -i '^[a-z]*$' | head -n 4 | sed ':a;N;$!ba;s/\n/ /g')
-		
-	randomPos=$[ ( ${RANDOM} % ${#password} )  +  1 ]
-	randomChar=${specialCharacters:$[ ( ${RANDOM} % ${#specialCharacters} )  +  1 ]-1:1}
+
+	randomPos=$[ ( ${RANDOM} % ${# password} )  +  1 ]
+	randomChar=${specialCharacters:$[ ( ${RANDOM} % ${# specialCharacters} )  +  1 ]-1:1}
 	password=$(echo "${password}" | sed "s/\(.\)/\1${randomChar}/${randomPos}")
-	
-	randomPos=$[ ( ${RANDOM} % ${#password} )  +  1 ]
-	randomChar=${specialCharacters:$[ ( ${RANDOM} % ${#specialCharacters} )  +  1 ]-1:1}
+
+	randomPos=$[ ( ${RANDOM} % ${# password} )  +  1 ]
+	randomChar=${specialCharacters:$[ ( ${RANDOM} % ${# specialCharacters} )  +  1 ]-1:1}
 	password=$(echo "${password}" | sed "s/\(.\)/\1${randomChar}/${randomPos}")
-	
-	randomPos=$[ ( ${RANDOM} % ${#password} )  +  1 ]
-	randomChar=${specialCharacters:$[ ( ${RANDOM} % ${#specialCharacters} )  +  1 ]-1:1}
+
+	randomPos=$[ ( ${RANDOM} % ${# password} )  +  1 ]
+	randomChar=${specialCharacters:$[ ( ${RANDOM} % ${# specialCharacters} )  +  1 ]-1:1}
 	password=$(echo "${password}" | sed "s/\(.\)/\1${randomChar}/${randomPos}")
-	
-	randomPos=$[ ( ${RANDOM} % ${#password} )  +  1 ]
-	randomChar=${specialCharacters:$[ ( ${RANDOM} % ${#specialCharacters} )  +  1 ]-1:1}
+
+	randomPos=$[ ( ${RANDOM} % ${# password} )  +  1 ]
+	randomChar=${specialCharacters:$[ ( ${RANDOM} % ${# specialCharacters} )  +  1 ]-1:1}
 	password=$(echo "${password}" | sed "s/\(.\)/\1${randomChar}/${randomPos}")
-	
+
 	printf "%s" "${password}"
 }
 
 syncPasswords(){
-	#Remove any trailing slashes, then add one
+	# Remove any trailing slashes, then add one
 	target=${1%/}
 	target="${target}/"
 	rsync -acz --progress --itemize-changes --partial -e ssh "${passwordFilePath}/" "${target}"
@@ -80,20 +80,20 @@ if [ -f "${configFile}" ]; then
 	recipient=$(cat "${configFile}")
 fi
 
-if [ $# -eq 0 ]; then	
+if [ $# -eq 0 ]; then
 	tree "${passwordFilePath}/" | sed "s/\.gpg$//" | sed -n -e :a -e '1,2!{P;N;D;};N;ba'
 fi
 
 if [ $# -eq 1 ]; then
-	if [ "$1" = "-g" -o "$1" = "--generate" ]; then
+	if [ "$1" = "-g" ] || [ "$1" = "--generate" ]; then
 		password="$(generatePassword)"
-		
-		echo ${password}
+
+		echo "${password}"
 		printf "%s" "${password}" | xclip -selection clipboard
 		sleep "${clipboardTime}" && printf "" | xclip -selection clipboard &
-	elif [ "$1" = "-l" -o "$1" = "--list" ]; then
+	elif [ "$1" = "-l" ] || [ "$1" = "--list" ]; then
 		tree "${passwordFilePath}" | sed "s/\.gpg$//" | sed -n -e :a -e '1,2!{P;N;D;};N;ba'
-	elif [ "$1" = "-c" -o "$1" = "--sync" ]; then
+	elif [ "$1" = "-c" ] || [ "$1" = "--sync" ]; then
 		if [ -f "${syncFile}" ]; then
 			destination=$(cat "${syncFile}")
 			syncPasswords "${destination}"
@@ -104,7 +104,7 @@ if [ $# -eq 1 ]; then
 fi
 
 if [ $# -eq 2 ]; then
-	if [ "$1" = "-g" -o "$1" = "--generate" ]; then
+	if [ "$1" = "-g" ] || [ "$1" = "--generate" ]; then
 		if [ -f "${passwordFilePath}/$2.gpg" ]; then
 			printf "This domain already exists.  Overwrite? (y/n) "
 			read yn
@@ -114,23 +114,23 @@ if [ $# -eq 2 ]; then
 				* ) exit;;
 			esac
 		fi
-		
+
 		printf "Enter your login for this domain: "
 		read login
 
 		password="$(generatePassword)"
-		
+
 		if [ "${recipient}" = "" ]; then
 			printf "login: ${login}\npass: ${password}" | gpg --symmetric --armor --batch --yes --output "${passwordFilePath}/$2.gpg"
 		else
 			printf "login: ${login}\npass: ${password}" | gpg --encrypt --armor --batch --yes --recipient "${recipient}" --output "${passwordFilePath}/$2.gpg"
 		fi
-	
+
 		printf "%s" "${password}"
 		printf "%s" "${password}" | xclip -selection clipboard
 		sleep "${clipboardTime}" && printf "" | xclip -selection clipboard &
-	elif [ "$1" = "-a" -o "$1" = "--add" ]; then
-		if [ -f "${passwordFilePath}/$2.gpg" ]; then	
+	elif [ "$1" = "-a" ] || [ "$1" = "--add" ]; then
+		if [ -f "${passwordFilePath}/$2.gpg" ]; then
 			printf "This domain already exists.  Overwrite? (y/n) "
 			read yn
 			case "${yn}" in
@@ -142,7 +142,7 @@ if [ $# -eq 2 ]; then
 
 		printf "Enter your login for this domain: "
 		read login
-		
+
 		printf "Enter your password for this domain: "
 		stty -echo
 		read password
@@ -152,28 +152,27 @@ if [ $# -eq 2 ]; then
 		read passwordConfirm
 		stty echo
 		printf "\n"
-		
+
 		if [ "${password}" != "${passwordConfirm}" ]; then
 			die "Passwords don't match."
 		fi
-		
+
 		if [ "${recipient}" = "" ]; then
 			printf "login: ${login}\npass: ${password}" | gpg --symmetric --armor --batch --yes --output "${passwordFilePath}/$2.gpg"
 		else
 			printf "login: ${login}\npass: ${password}" | gpg --encrypt --armor --batch --yes --recipient "${recipient}" --output "${passwordFilePath}/$2.gpg"
 		fi
-	elif [ "$1" = "-s" -o "$1" = "--show" ]; then
+	elif [ "$1" = "-s" ] || [ "$1" = "--show" ]; then
 		if [ -f "${passwordFilePath}/$2.gpg" ]; then
 			text=$(gpg --use-agent --decrypt --no-tty "${passwordFilePath}/$2.gpg" 2> /dev/null)
-			
+
 			if [ $? -ne 0 ]; then
 				die "Invalid password."
 			fi
-			
+
 			printf "%s\n" "${text}"
-			
-			printf "%s" "${text}" | grep -i -E "^pass(word)?\:\s.*" > /dev/null 2>&1
-			if [ $? -eq 0 ]; then
+
+			if printf "%s" "${text}" | grep -i -E "^pass(word)?\:\s.*" > /dev/null 2>&1; then
 				password=$(printf "%s" "${text}" | grep -i -E "^pass(word)?\:\s.*" | sed -r "s/^pass(word)?\:\s//")
 				if [ "${password}" != "" ]; then
 					printf "%s" "${password}" | xclip -selection clipboard
@@ -183,49 +182,45 @@ if [ $# -eq 2 ]; then
 		else
 			die "File not found."
 		fi
-	elif [ "$1" = "-e" -o "$1" = "--edit" ]; then
+	elif [ "$1" = "-e" ] || [ "$1" = "--edit" ]; then
 		if [ -f "${passwordFilePath}/$2.gpg" ]; then
 			mkdir -p "${tempMountPoint}"
-			
+
 			sudo umount "${tempMountPoint}" > /dev/null 2>&1
-			
-			sudo mount -t ramfs -o size=20m ramfs "${tempMountPoint}"
-			
-			if [ $? -ne 0 ]; then
+
+			if ! sudo mount -t ramfs -o size=20m ramfs "${tempMountPoint}"; then
 				die "Couldn't create temporary mount.  Do you have sudo privileges?"
 			fi
-			
-			sudo chown $(whoami) "${tempMountPoint}"
-			
+
+			sudo chown "$(whoami)" "${tempMountPoint}"
+
 			filename="$(basename "$2")"
 			filePath="${tempMountPoint}/${filename}"
-			
-			gpg --use-agent --decrypt --no-tty --output "${filePath}" "${passwordFilePath}/$2.gpg" 2> /dev/null
-			
-			if [ $? -ne 0 ]; then
+
+			if ! gpg --use-agent --decrypt --no-tty --output "${filePath}" "${passwordFilePath}/$2.gpg" 2> /dev/null; then
 				sudo umount "${tempMountPoint}"
 				die "Invalid password."
 			fi
-			
+
 			if [ "${EDITOR}" = "" ]; then
 				vi "${filePath}"
 			else
 				"${EDITOR}" "${filePath}"
 			fi
-			
+
 			if [ "${recipient}" = "" ]; then
 				gpg --symmetric --armor --batch --yes --output "${passwordFilePath}/$2.gpg" "${filePath}"
 			else
 				gpg --encrypt --armor --batch --yes --recipient "${recipient}" --output "${passwordFilePath}/$2.gpg" "${filePath}"
 			fi
-			
+
 			rm "${filePath}"
-			
+
 			sudo umount "${tempMountPoint}"
 		else
 			die "File not found."
 		fi
-	elif [ "$1" = "-c" -o "$1" = "--sync" ]; then
+	elif [ "$1" = "-c" ] || [ "$1" = "--sync" ]; then
 		syncPasswords "$2"
 	fi
 fi

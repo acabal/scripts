@@ -8,24 +8,24 @@ DESCRIPTION
 USAGE
 	encrypted-folder -m,--mount DIRECTORY
 		Decrypt and mount DIRECTORY into ~/DIRECTORY.decrypted/.  If DIRECTORY doesn't exist or isn't an encfs volume, create a new encfs volume.
-	
+
 	encrypted-folder -u,--unmount [DIRECTORY]
 		Unmount all mounted encfs directories matching "~/*.decrypted", or a single specified directory.
 EOF
 	exit
 }
-die(){ printf "Error: ${1}\n" 1>&2; exit 1; }
-require(){ command -v $1 > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
-if [ $# -eq 1 ]; then if [ "$1" = "--help" -o "$1" = "-h" ]; then usage; fi fi
-#End boilerplate
+die(){ printf "Error: %s\n" "${1}" 1>&2; exit 1; }
+require(){ command -v "${1}" > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
+if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
+# End boilerplate
 
 decryptedRoot="${HOME}"
 
 require "encfs" "Try: apt-get install encfs"
 require "pip" "Try: apt-get install python-pip"
-#We require the keyring python library
-pip freeze 2> /dev/null | grep "keyring" > /dev/null 2>&1
-if [ $? -ne 0 ]; then
+# We require the keyring python library
+
+if ! pip freeze 2> /dev/null | grep "keyring" > /dev/null 2>&1; then
 	die "Python keyring library is not installed.  Try: pip install keyring"
 fi
 
@@ -35,7 +35,7 @@ fi
 
 if [ $# -eq 1 ]; then
 	if [ "$1" = "set-password" ]; then
-		#This currently doesn't seem to work with 12.04 LTS.
+		# This currently doesn't seem to work with 12.04 LTS.
 		die "Currently broken.  Sorry!"
 		me=$(whoami)
 		printf "New password:"
@@ -43,7 +43,7 @@ if [ $# -eq 1 ]; then
 		read pw
 		stty echo
 		python -c "import keyring;print keyring.set_password('""encrypted-folder""', '""${me}""', '""${pw}""')" > /dev/null 2>&1
-	elif [ "$1" = "--unmount" -o "$1" = "-u" ]; then
+	elif [ "$1" = "--unmount" ] || [ "$1" = "-u" ]; then
 		find "${decryptedRoot}" -maxdepth 1 -type d -name '*.decrypted' -exec fusermount -u {} \;
 		find "${decryptedRoot}" -maxdepth 1 -type d -name '*.decrypted' -exec rmdir {} \;
 	else
@@ -52,34 +52,34 @@ if [ $# -eq 1 ]; then
 fi
 
 if [ $# -eq 2 ]; then
-	if [ "$1" = "--mount" -o "$1" = "-m" ]; then
+	if [ "$1" = "--mount" ] || [ "$1" = "-m" ]; then
 		encryptedFolderPath=$(readlink -f "$2")
 		encryptedFolder=$(basename "${encryptedFolderPath}")
 		decryptedFolderPath="${decryptedRoot}"/"${encryptedFolder}".decrypted
 		me=$(whoami)
-		
+
 		if [ -d "${decryptedFolderPath}" ] ; then
 			die "Directory already mounted."
 		fi
-		
-		mkdir -p "${encryptedFolderPath}" #in case we're creating a new volume
+
+		mkdir -p "${encryptedFolderPath}" # in case we're creating a new volume
 		mkdir -p "${decryptedFolderPath}"
-		
-		#Do we have a stored password?  If so, use it
+
+		# Do we have a stored password?  If so, use it
 		pw=$(python -c "import keyring;print keyring.get_password('encrypted-folder', '${me}')")
-		
+
 		if [ "${pw}" = "None" ]; then
 			encfs "${encryptedFolderPath}" "${decryptedFolderPath}"
 		else
-			printf "${pw}" | encfs -S "${encryptedFolderPath}" "${decryptedFolderPath}"
+			printf "%s" "${pw}" | encfs -S "${encryptedFolderPath}" "${decryptedFolderPath}"
 		fi
-		
+
 		if [ "$?" -eq 0 ]; then
 			printf "Mounted at %s/\n" "${decryptedFolderPath}"
 		else
 			rmdir "${decryptedFolderPath}"
 		fi
-	elif [ "$1" = "--unmount" -o "$1" = "-u" ]; then
+	elif [ "$1" = "--unmount" ] || [ "$1" = "-u" ]; then
 		decryptedFolderPath=$(readlink -f "$2")
 		if [ -d "${decryptedFolderPath}" ] ; then
 			fusermount -u "${decryptedFolderPath}"
