@@ -3,7 +3,7 @@
 usage(){
 	fmt <<EOF
 DESCRIPTION
-	Toggle the laptop display on or off.
+	Toggle the display on or off.
 
 USAGE
 	screen-toggle
@@ -15,23 +15,41 @@ require(){ command -v "${1}" > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2"
 if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
 # End boilerplate
 
-screenOffLockFile="/tmp/screen-toggle-lock/"
+sessionType=$(loginctl show-session "$(loginctl |grep "$(whoami)" |awk '{print $1}')" -p Type | sed "s/Type=//")
 
-if mkdir "${screenOffLockFile}"; then
-	while :
-	do
-		if ! xset q | grep --quiet "Monitor is Off"; then
-			if [ -d ${screenOffLockFile} ]; then
-				xset dpms force off
-			else
-				xset dpms force on
+if [ "${sessionType}" = "wayland" ]; then
+	screenState=$(busctl --user get-property org.gnome.Mutter.DisplayConfig /org/gnome/Mutter/DisplayConfig org.gnome.Mutter.DisplayConfig PowerSaveMode)
 
-				exit
-			fi
-		fi
-		sleep .5
-	done
+	if [ "${screenState}" = "i 0" ]; then
+		# Turn screen off
+		busctl --user set-property org.gnome.Mutter.DisplayConfig /org/gnome/Mutter/DisplayConfig org.gnome.Mutter.DisplayConfig PowerSaveMode i 1
+	else
+		# Turn screen on
+		busctl --user set-property org.gnome.Mutter.DisplayConfig /org/gnome/Mutter/DisplayConfig org.gnome.Mutter.DisplayConfig PowerSaveMode i 0
+	fi
 else
-	rm -rf "${screenOffLockFile}"
-	xset dpms force on
+	screenOffLockFile="/tmp/screen-toggle-lock"
+
+	if [ ! -f "${screenOffLockFile}" ]; then
+		# Turn the screen off. Because keyboard/mouse input will turn the screen on again,
+		# do this in a loop that sets the screen off every .5 seconds.
+		touch "${screenOffLockFile}"
+		while :
+		do
+			if ! xset q | grep --quiet "Monitor is Off"; then
+				if [ -f ${screenOffLockFile} ]; then
+					xset dpms force off
+				else
+					xset dpms force on
+					exit
+				fi
+			fi
+			sleep .5
+		done
+	else
+		rm "${screenOffLockFile}"
+		xset dpms force on
+	fi
 fi
+
+
