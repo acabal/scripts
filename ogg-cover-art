@@ -7,7 +7,7 @@ DESCRIPTION
 	Adapted from mussync-tools by biapy: https://github.com/biapy/howto.biapy.com/blob/master/various/mussync-tools
 
 USAGE
-	ogg-cover-art [COVER-FILENAME] DESCRIPTION OGG-FILENAME
+	ogg-cover-art [-h|--help] [-d TEXT|--description=TEXT] [COVER-FILENAME] OGG-FILENAME
 		Add cover art to OGG-FILENAME.  If COVER-FILENAME is not specified,
 		use cover.jpg, cover.jpeg, or cover.png located in the same folder
 		as OGG-FILENAME.
@@ -16,22 +16,61 @@ EOF
 }
 die(){ printf "Error: %s\n" "${1}" 1>&2; exit 1; }
 require(){ command -v "${1}" > /dev/null 2>&1 || { suggestion=""; if [ ! -z "$2" ]; then suggestion=" $2"; fi; die "$1 is not installed.${suggestion}"; } }
-if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi fi
 # End boilerplate
 
 require "vorbiscomment" "Try: apt-get install vorbis-tools"
 
-if [ $# -lt 2 -o $# -gt 3 ]; then
+if [ $# -eq 0 ]; then
 	usage
 fi
 
-if [ $# -eq 3 ]; then
-	imagePath="$1"
-	description="$2"
-	outputFile="$3"
-else
-	description="$1"
-	outputFile="$2"
+description=''
+file1=''
+file2=''
+files=0
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+	-h|--help)
+		usage
+		;;
+	-d)
+		if [ $# -eq 1 ]; then
+			die "Missing description's text"
+		fi
+		description="$2"
+		shift 2
+		;;
+	--description=*)
+		description="${1#*=}"
+		shift 1
+		;;
+	*)
+		case $files in
+		0) file1="$1";;
+		1) file2="$1";;
+		2) die "Too many files specified";;
+		esac
+		files=$((files+1))
+		shift 1
+		;;
+	esac
+done
+
+case $files in
+0)	;;
+1)	outputFile="$file1";;
+2)	imagePath="$file1"
+	outputFile="$file2";;
+esac
+
+unset file1 file2 files
+
+if [ -z "$outputFile" ]; then
+	die "No output file specified"
+fi
+
+if [ -z "$imagePath" ]; then
 	dirName=$(dirname "$outputFile")
 	imagePath="${dirName}/cover.jpg"
 	if [ ! -f "${imagePath}" ]; then
@@ -43,6 +82,7 @@ else
 			fi
 		fi
 	fi
+	unset dirName
 fi
 
 if [ ! -f "${outputFile}" ]; then
@@ -79,7 +119,7 @@ sed -i -e '/^metadata_block_picture/d' "${commentsPath}"
 imageWithHeader="$(mktemp -t "tmp.XXXXXXXXXX")"
 
 # Reset cache file
-echo -n "" > "${imageWithHeader}"
+: > "${imageWithHeader}"
 
 # Picture type <32>
 printf "0: %.8x" 3 | xxd -r -g0 >> "${imageWithHeader}"
