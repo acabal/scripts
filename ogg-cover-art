@@ -7,7 +7,7 @@ DESCRIPTION
 	Adapted from mussync-tools by biapy: https://github.com/biapy/howto.biapy.com/blob/master/various/mussync-tools
 
 USAGE
-	ogg-cover-art [COVER-FILENAME] OGG-FILENAME
+	ogg-cover-art [COVER-FILENAME] DESCRIPTION OGG-FILENAME
 		Add cover art to OGG-FILENAME.  If COVER-FILENAME is not specified,
 		use cover.jpg, cover.jpeg, or cover.png located in the same folder
 		as OGG-FILENAME.
@@ -21,16 +21,18 @@ if [ $# -eq 1 ]; then if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then usage; fi 
 
 require "vorbiscomment" "Try: apt-get install vorbis-tools"
 
-if [ $# -eq 0 ]; then
+if [ $# -lt 2 -o $# -gt 3 ]; then
 	usage
 fi
 
-outputFile=""
-imagePath=""
-
-if [ $# -eq 1 ]; then
-	outputFile="$1"
-	dirName=$(dirname "$1")
+if [ $# -eq 3 ]; then
+	imagePath="$1"
+	description="$2"
+	outputFile="$3"
+else
+	description="$1"
+	outputFile="$2"
+	dirName=$(dirname "$outputFile")
 	imagePath="${dirName}/cover.jpg"
 	if [ ! -f "${imagePath}" ]; then
 		imagePath="${dirName}/cover.jpeg"
@@ -41,11 +43,6 @@ if [ $# -eq 1 ]; then
 			fi
 		fi
 	fi
-fi
-
-if [ $# -eq 2 ]; then
-	outputFile="$2"
-	imagePath="$1"
 fi
 
 if [ ! -f "${outputFile}" ]; then
@@ -80,7 +77,6 @@ sed -i -e '/^metadata_block_picture/d' "${commentsPath}"
 # metadata_block_picture format
 # See: https://xiph.org/flac/format.html# metadata_block_picture
 imageWithHeader="$(mktemp -t "tmp.XXXXXXXXXX")"
-description=""
 
 # Reset cache file
 echo -n "" > "${imageWithHeader}"
