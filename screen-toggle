@@ -23,9 +23,11 @@ if [ "${sessionType}" = "wayland" ]; then
 	if [ "${screenState}" = "i 0" ]; then
 		# Turn screen off
 		busctl --user set-property org.gnome.Mutter.DisplayConfig /org/gnome/Mutter/DisplayConfig org.gnome.Mutter.DisplayConfig PowerSaveMode i 1
+		echo 1 | sudo tee /sys/class/leds/tpacpi::power/brightness > /dev/null
 	else
 		# Turn screen on
 		busctl --user set-property org.gnome.Mutter.DisplayConfig /org/gnome/Mutter/DisplayConfig org.gnome.Mutter.DisplayConfig PowerSaveMode i 0
+		echo 0 | sudo tee /sys/class/leds/tpacpi::power/brightness > /dev/null
 	fi
 else
 	screenOffLockFile="/tmp/screen-toggle-lock"
@@ -34,6 +36,7 @@ else
 		# Turn the screen off. Because keyboard/mouse input will turn the screen on again,
 		# do this in a loop that sets the screen off every .5 seconds.
 		touch "${screenOffLockFile}"
+		echo 1 | sudo tee /sys/class/leds/tpacpi::power/brightness > /dev/null
 		while :
 		do
 			if ! xset q | grep --quiet "Monitor is Off"; then
@@ -47,9 +50,11 @@ else
 			sleep .5
 		done
 	else
+		echo 0 | sudo tee /sys/class/leds/tpacpi::power/brightness > /dev/null
 		rm "${screenOffLockFile}"
 		xset dpms force on
 	fi
 fi
+
 
 
